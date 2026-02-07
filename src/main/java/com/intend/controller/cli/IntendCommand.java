@@ -40,10 +40,7 @@ public class IntendCommand implements Callable<Integer> {
                 auth
             );
 
-            Map<String, String> headers = service.prepareRequest(intent);
-
-            System.out.println("\n✅ Final Request Headers:");
-            headers.forEach((k, v) -> System.out.println(String.format("   %s: %s", k, v)));
+            service.executeRequest(intent);
 
             return 0;
 

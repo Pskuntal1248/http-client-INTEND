@@ -1,9 +1,9 @@
 package com.intend.spi;
 
 import com.intend.context.ResolutionContext;
-import java.util.Map;
 
 public interface HeaderProvider {
+    int getOrder();
     boolean supports(ResolutionContext context);
-    Map<String, String> provide(ResolutionContext context);
+    HeaderResolution resolve(ResolutionContext context);
 }
