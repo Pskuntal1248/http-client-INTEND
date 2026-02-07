@@ -31,13 +31,14 @@ public class JavaHttpClientExecutor implements RequestExecutor {
 
             headers.forEach(builder::header);
 
+            // 3. Apply Method & Body
             HttpRequest.BodyPublisher bodyPublisher = (intent.payload() == null)
                     ? HttpRequest.BodyPublishers.noBody()
                     : HttpRequest.BodyPublishers.ofString(intent.payload().toString());
 
             builder.method(intent.method().name(), bodyPublisher);
 
-            System.out.println("🚀 Sending " + intent.method() + " to " + intent.url() + "...");
+            System.out.println("Sending " + intent.method() + " to " + intent.url() + "...");
             HttpResponse<String> response = client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
 
             return String.format("Status: %d\nBody: %s", response.statusCode(), response.body());

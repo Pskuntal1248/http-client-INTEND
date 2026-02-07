@@ -30,14 +30,25 @@ public class IntendCommand implements Callable<Integer> {
     @Option(names = "--auth", defaultValue = "NONE")
     RequestIntent.AuthStrategy auth;
 
+    @Option(names = {"-d", "--data"}, description = "JSON payload")
+    String data;
+
+    @Option(names = "--new", description = "Force a new Idempotency Key")
+    boolean newKey;
+
+    @Option(names = "--env", defaultValue = "dev", description = "Target Environment (dev, prod)")
+    String environment;
+
     @Override
     public Integer call() {
         try {
             RequestIntent intent = new RequestIntent(
                 RequestIntent.Method.valueOf(method.toUpperCase()),
                 URI.create(url),
-                null,
-                auth
+                data,
+                auth,
+                newKey,
+                environment
             );
 
             service.executeRequest(intent);
@@ -45,7 +56,7 @@ public class IntendCommand implements Callable<Integer> {
             return 0;
 
         } catch (Exception e) {
-            System.err.println("❌ Error: " + e.getMessage());
+            System.err.println("Error: " + e.getMessage());
             return 1;
         }
     }

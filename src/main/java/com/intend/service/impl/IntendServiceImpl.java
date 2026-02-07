@@ -35,7 +35,7 @@ public class IntendServiceImpl implements IntendService {
         String response = executor.execute(intent, headers);
 
         // 4. Output Result
-        System.out.println("\n✅ Response Received:");
+        System.out.println("\nResponse Received:");
         System.out.println(response);
     }
 }

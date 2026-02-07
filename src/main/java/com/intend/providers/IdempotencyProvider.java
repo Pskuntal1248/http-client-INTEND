@@ -31,6 +31,18 @@ public class IdempotencyProvider implements HeaderProvider {
     public HeaderResolution resolve(ResolutionContext ctx) {
         String fingerprint = ctx.intent().method() + ":" + ctx.intent().url();
 
+       
+        if (ctx.intent().forceNew()) {
+            System.out.println("Force New: Generating fresh Idempotency Key.");
+            String newKey = UUID.randomUUID().toString();
+            stateRepository.saveIdempotencyKey(fingerprint, newKey);
+
+            return HeaderResolution.success(Map.of(
+                "Idempotency-Key", newKey,
+                "X-Request-ID", newKey
+            ));
+        }
+
         String existingKey = stateRepository.getLastIdempotencyKey(fingerprint);
 
         String finalKey;
