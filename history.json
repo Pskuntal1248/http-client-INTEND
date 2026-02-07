@@ -1,0 +1,21 @@
+[ {
+  "method" : "GET",
+  "url" : "https://httpbin.org/get?agent=d2db9723-69e2-421b-8d41-bc47f3d0b6b2",
+  "body" : "",
+  "timestamp" : "02:38:45"
+}, {
+  "method" : "POST",
+  "url" : "https://httpbin.org/post",
+  "body" : "{\"name\": \"Bond\", \"id\": \"d2db9723-69e2-421b-8d41-bc47f3d0b6b2\"}",
+  "timestamp" : "02:36:32"
+}, {
+  "method" : "POST",
+  "url" : "https://httpbin.org/post",
+  "body" : "{\"name\": \"Bond\", \"id\": \"b4f5c68e-01e1-4a12-a7bd-85b418c960b0\"}",
+  "timestamp" : "02:33:28"
+}, {
+  "method" : "POST",
+  "url" : "https://httpbin.org/post?ts=2026-02-07T20:48:21.369916Z",
+  "body" : "{\n  \"id\": \"ce16b1c9-211d-4e42-9203-31fba4442c39\",\n  \"email\": \"user_5838@example.com\",\n  \"score\": 241\n}",
+  "timestamp" : "02:18:21"
+} ]
