@@ -13,6 +13,7 @@ import com.intend.repository.VariableRepository;
 import com.intend.service.IntendService;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.net.URI;
 import java.util.Map;
 
@@ -84,9 +85,7 @@ public class IntendServiceImpl implements IntendService {
     }
 
     private RequestIntent resolveIntent(RequestIntent intent) {
-        String processedBody = templateEngine.process(intent.payload() == null
-            ? null
-            : intent.payload().toString());
+        Object processedBody = resolvePayload(intent.payload());
         String processedUrl = templateEngine.process(intent.url().toString());
 
         return new RequestIntent(
@@ -97,6 +96,14 @@ public class IntendServiceImpl implements IntendService {
             intent.forceNew(),
             intent.env()
         );
+    }
+
+    private Object resolvePayload(Object payload) {
+        if (payload instanceof File) {
+            return payload;
+        }
+
+        return templateEngine.process(payload == null ? null : payload.toString());
     }
 
     private void captureVariables(String rawResponse, Map<String, String> captures) {

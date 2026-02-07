@@ -14,10 +14,12 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 
+import java.io.File;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,6 +44,7 @@ public class MainWindow extends Application {
     private CheckBox chainToggle;
     private boolean historyCollapsed;
     private double historyDividerPosition = 0.3;
+    private File selectedFile;
 
     @Override
     public void init() {
@@ -135,6 +138,34 @@ public class MainWindow extends Application {
         requestBody.setPrefHeight(100);
         requestBody.setFont(Font.font("Monospaced"));
 
+        Button fileButton = new Button("Attach File");
+        Label fileLabel = new Label("No file selected");
+        fileLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: gray;");
+
+        fileButton.setOnAction(event -> {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Select File to Upload");
+            File file = fileChooser.showOpenDialog(stage);
+            if (file != null) {
+                selectedFile = file;
+                fileLabel.setText("File: " + file.getName());
+                requestBody.setDisable(true);
+                requestBody.setText("[File Selected: " + file.getAbsolutePath() + "]");
+                methodBox.setValue("POST");
+            }
+        });
+
+        Button clearFileButton = new Button("Clear");
+        clearFileButton.setOnAction(event -> {
+            selectedFile = null;
+            fileLabel.setText("No file selected");
+            requestBody.setDisable(false);
+            requestBody.setText("");
+        });
+
+        HBox fileSection = new HBox(10, fileButton, clearFileButton, fileLabel);
+        fileSection.setAlignment(Pos.CENTER_LEFT);
+
         captureField = new TextField();
         captureField.setPromptText("Capture (e.g. USER_ID=/json/id)");
         captureField.setVisible(false);
@@ -165,6 +196,7 @@ public class MainWindow extends Application {
             10,
             topBar,
             new Label("Request Body"),
+            fileSection,
             requestBody,
             captureSection,
             new Label("Response"),
@@ -189,10 +221,11 @@ public class MainWindow extends Application {
                     if (resolvedUrl.contains("{{")) {
                         throw new IllegalArgumentException("Unresolved URL template variables.");
                     }
+                    Object payload = selectedFile != null ? selectedFile : requestBody.getText();
                     RequestIntent intent = new RequestIntent(
                         RequestIntent.Method.valueOf(methodBox.getValue()),
                         URI.create(resolvedUrl),
-                        requestBody.getText(),
+                        payload,
                         RequestIntent.AuthStrategy.API_KEY,
                         false,
                         envBox.getValue().toLowerCase()

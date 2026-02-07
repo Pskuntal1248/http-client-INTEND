@@ -4,10 +4,12 @@ import com.intend.core.RequestIntent;
 import com.intend.execution.RequestExecutor;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 
 @Component
@@ -29,12 +31,14 @@ public class JavaHttpClientExecutor implements RequestExecutor {
             HttpRequest.Builder builder = HttpRequest.newBuilder()
                     .uri(intent.url());
 
-            headers.forEach(builder::header);
+            Map<String, String> requestHeaders = new HashMap<>(headers);
+            HttpRequest.BodyPublisher bodyPublisher = resolveBodyPublisher(intent, builder, requestHeaders);
 
-            // 3. Apply Method & Body
-            HttpRequest.BodyPublisher bodyPublisher = (intent.payload() == null)
-                    ? HttpRequest.BodyPublishers.noBody()
-                    : HttpRequest.BodyPublishers.ofString(intent.payload().toString());
+            requestHeaders.forEach((key, value) -> {
+                if (!"Content-Type".equalsIgnoreCase(key)) {
+                    builder.header(key, value);
+                }
+            });
 
             builder.method(intent.method().name(), bodyPublisher);
 
@@ -46,5 +50,26 @@ public class JavaHttpClientExecutor implements RequestExecutor {
         } catch (Exception e) {
             throw new RuntimeException("Network Error: " + e.getMessage(), e);
         }
+    }
+
+    private HttpRequest.BodyPublisher resolveBodyPublisher(
+        RequestIntent intent,
+        HttpRequest.Builder builder,
+        Map<String, String> headers
+    ) throws Exception {
+        if (intent.payload() instanceof File file) {
+            MultipartUtil multipart = new MultipartUtil();
+            multipart.addFilePart("file", file.toPath());
+
+            headers.remove("Content-Type");
+            builder.header("Content-Type", "multipart/form-data; boundary=" + multipart.getBoundary());
+            System.out.println("Uploading File: " + file.getName());
+
+            return multipart.build();
+        }
+
+        return intent.payload() == null
+            ? HttpRequest.BodyPublishers.noBody()
+            : HttpRequest.BodyPublishers.ofString(intent.payload().toString());
     }
 }
