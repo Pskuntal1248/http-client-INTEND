@@ -7,6 +7,7 @@ import com.intend.core.RequestIntent;
 import com.intend.engine.HeaderEngine;
 import com.intend.engine.TemplateEngine;
 import com.intend.execution.RequestExecutor;
+import com.intend.repository.ConfigRepository;
 import com.intend.repository.ContextRepository;
 import com.intend.repository.HistoryRepository;
 import com.intend.repository.VariableRepository;
@@ -26,6 +27,7 @@ public class IntendServiceImpl implements IntendService {
     private final HistoryRepository historyRepository;
     private final TemplateEngine templateEngine;
     private final VariableRepository variableRepository;
+    private final ConfigRepository configRepository;
     private final ObjectMapper mapper = new ObjectMapper();
 
     public IntendServiceImpl(
@@ -34,7 +36,8 @@ public class IntendServiceImpl implements IntendService {
         RequestExecutor executor,
         HistoryRepository historyRepository,
         TemplateEngine templateEngine,
-        VariableRepository variableRepository
+        VariableRepository variableRepository,
+        ConfigRepository configRepository
     ) {
         this.repository = repository;
         this.engine = engine;
@@ -42,6 +45,7 @@ public class IntendServiceImpl implements IntendService {
         this.historyRepository = historyRepository;
         this.templateEngine = templateEngine;
         this.variableRepository = variableRepository;
+        this.configRepository = configRepository;
     }
 
     @Override
@@ -134,5 +138,9 @@ public class IntendServiceImpl implements IntendService {
 
     public HistoryRepository getHistory() {
         return historyRepository;
+    }
+
+    public ConfigRepository getConfigRepository() {
+        return configRepository;
     }
 }

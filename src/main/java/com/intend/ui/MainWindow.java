@@ -3,6 +3,7 @@ package com.intend.ui;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intend.core.RequestIntent;
 import com.intend.engine.TemplateEngine;
+import com.intend.repository.ConfigRepository;
 import com.intend.repository.HistoryRepository;
 import com.intend.service.impl.IntendServiceImpl;
 import javafx.application.Application;
@@ -32,6 +33,7 @@ public class MainWindow extends Application {
     private final ObjectMapper mapper = new ObjectMapper();
 
     private ComboBox<String> methodBox;
+    private ComboBox<RequestIntent.AuthStrategy> authBox;
     private TextField urlField;
     private TextArea requestBody;
     private TextField captureField;
@@ -41,6 +43,7 @@ public class MainWindow extends Application {
     private VBox sidebar;
     private Button sidebarToggleButton;
     private Button mainToggleButton;
+    private Button settingsButton;
     private CheckBox chainToggle;
     private boolean historyCollapsed;
     private double historyDividerPosition = 0.3;
@@ -128,6 +131,10 @@ public class MainWindow extends Application {
         envBox.getItems().addAll("DEV", "PROD");
         envBox.setValue("DEV");
 
+        authBox = new ComboBox<>();
+        authBox.getItems().addAll(RequestIntent.AuthStrategy.values());
+        authBox.setValue(RequestIntent.AuthStrategy.NONE);
+
         urlField = new TextField("https://httpbin.org/post");
         HBox.setHgrow(urlField, Priority.ALWAYS);
 
@@ -189,7 +196,10 @@ public class MainWindow extends Application {
         mainToggleButton = new Button("Hide History");
         mainToggleButton.setOnAction(event -> toggleHistory());
 
-        HBox topBar = new HBox(10, mainToggleButton, methodBox, envBox, urlField, sendBtn);
+        settingsButton = new Button("Settings");
+        settingsButton.setOnAction(event -> openSettingsWindow());
+
+        HBox topBar = new HBox(10, settingsButton, mainToggleButton, methodBox, authBox, envBox, urlField, sendBtn);
         topBar.setAlignment(Pos.CENTER_LEFT);
 
         VBox mainContent = new VBox(
@@ -226,7 +236,7 @@ public class MainWindow extends Application {
                         RequestIntent.Method.valueOf(methodBox.getValue()),
                         URI.create(resolvedUrl),
                         payload,
-                        RequestIntent.AuthStrategy.API_KEY,
+                        authBox.getValue(),
                         false,
                         envBox.getValue().toLowerCase()
                     );
@@ -364,6 +374,51 @@ public class MainWindow extends Application {
         }
 
         return captures;
+    }
+
+    private void openSettingsWindow() {
+        Stage settingsStage = new Stage();
+        settingsStage.setTitle("Environment Configuration");
+
+        ConfigRepository.ConfigData current = intendService.getConfigRepository().get();
+
+        TextField devUrlField = new TextField(current.devUrl);
+        PasswordField devKeyField = new PasswordField();
+        devKeyField.setText(current.devKey);
+
+        TextField prodUrlField = new TextField(current.prodUrl);
+        PasswordField prodKeyField = new PasswordField();
+        prodKeyField.setText(current.prodKey);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20));
+
+        grid.addRow(0, new Label("DEV URL:"), devUrlField);
+        grid.addRow(1, new Label("DEV Key:"), devKeyField);
+        grid.addRow(2, new Separator());
+        grid.addRow(3, new Label("PROD URL:"), prodUrlField);
+        grid.addRow(4, new Label("PROD Key:"), prodKeyField);
+
+        Button saveBtn = new Button("Save Configuration");
+        saveBtn.setMaxWidth(Double.MAX_VALUE);
+        saveBtn.setStyle("-fx-background-color: #28a745; -fx-text-fill: white;");
+        saveBtn.setOnAction(event -> {
+            intendService.getConfigRepository().save(
+                devUrlField.getText(),
+                devKeyField.getText(),
+                prodUrlField.getText(),
+                prodKeyField.getText()
+            );
+            settingsStage.close();
+        });
+
+        VBox root = new VBox(10, grid, saveBtn);
+        root.setPadding(new Insets(10));
+
+        settingsStage.setScene(new Scene(root, 400, 250));
+        settingsStage.show();
     }
 
     @Override

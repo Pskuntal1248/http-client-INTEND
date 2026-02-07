@@ -15,6 +15,6 @@ public record RequestIntent(
     }
 
     public enum AuthStrategy {
-        NONE, API_KEY, BEARER, OAUTH
+        NONE, API_KEY, BASIC_AUTH, BEARER_TOKEN
     }
 }

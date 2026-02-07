@@ -2,6 +2,8 @@ package com.intend.config;
 
 import com.intend.engine.HeaderEngine;
 import com.intend.providers.ApiKeyProvider;
+import com.intend.providers.BasicAuthProvider;
+import com.intend.providers.BearerTokenProvider;
 import com.intend.providers.IdempotencyProvider;
 import com.intend.providers.ProtocolProvider;
 import com.intend.repository.StateRepository;
@@ -19,6 +21,8 @@ public class EngineConfig {
         List<HeaderProvider> providers = List.of(
             new ProtocolProvider(),
             new ApiKeyProvider(),
+            new BasicAuthProvider(),
+            new BearerTokenProvider(),
             new IdempotencyProvider(stateRepository)
         );
         return new HeaderEngine(providers);
