@@ -1,6 +1,4 @@
 /.application.properties
-
-
 /target/
 
 /.classpath
@@ -8,3 +6,6 @@
 /.settings/
 /.idea
 *.iml
+
+!.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties

@@ -1,4 +1,13 @@
-/Users/testuser/api client sdk/src/main/java/com/intend/cli/IntendCommand.java
-/Users/testuser/api client sdk/src/main/java/com/intend/core/IntentValidator.java
+/Users/testuser/api client sdk/src/main/java/com/intend/controller/cli/IntendCommand.java
+/Users/testuser/api client sdk/src/main/java/com/intend/spi/HeaderProvider.java
+/Users/testuser/api client sdk/src/main/java/com/intend/providers/ProtocolProvider.java
+/Users/testuser/api client sdk/src/main/java/com/intend/service/IntendService.java
+/Users/testuser/api client sdk/src/main/java/com/intend/engine/HeaderEngine.java
+/Users/testuser/api client sdk/src/main/java/com/intend/context/ResolutionContext.java
+/Users/testuser/api client sdk/src/main/java/com/intend/repository/ContextRepository.java
+/Users/testuser/api client sdk/src/main/java/com/intend/config/EngineConfig.java
+/Users/testuser/api client sdk/src/main/java/com/intend/repository/impl/EnvContextRepository.java
+/Users/testuser/api client sdk/src/main/java/com/intend/service/impl/IntendServiceImpl.java
+/Users/testuser/api client sdk/src/main/java/com/intend/providers/ApiKeyProvider.java
 /Users/testuser/api client sdk/src/main/java/com/intend/IntendApplication.java
 /Users/testuser/api client sdk/src/main/java/com/intend/core/RequestIntent.java

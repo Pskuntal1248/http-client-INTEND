@@ -1,6 +1,0 @@
-com/intend/core/RequestIntent.class
-com/intend/core/IntentValidator.class
-com/intend/IntendApplication.class
-com/intend/IntendApplication$SpringFactory.class
-com/intend/core/RequestIntent$Mode.class
-com/intend/cli/IntendCommand.class
