@@ -8,12 +8,10 @@ import com.intend.spi.HeaderResolution;
 import java.util.Map;
 
 public class BearerTokenProvider implements HeaderProvider {
-
     @Override
     public int getOrder() {
         return 91;
     }
-
     @Override
     public boolean supports(ResolutionContext ctx) {
         return ctx.intent().auth() == RequestIntent.AuthStrategy.BEARER_TOKEN;

@@ -47,7 +47,7 @@ public class IdempotencyProvider implements HeaderProvider {
 
         String finalKey;
         if (existingKey != null) {
-            System.out.println("🧠 Memory: Reusing previous Idempotency Key for safety.");
+            System.out.println("Memory: Reusing previous Idempotency Key for safety.");
             finalKey = existingKey;
         } else {
             finalKey = UUID.randomUUID().toString();

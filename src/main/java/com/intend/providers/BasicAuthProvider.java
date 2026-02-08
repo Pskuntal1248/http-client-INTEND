@@ -15,12 +15,10 @@ public class BasicAuthProvider implements HeaderProvider {
     public int getOrder() {
         return 90;
     }
-
     @Override
     public boolean supports(ResolutionContext ctx) {
         return ctx.intent().auth() == RequestIntent.AuthStrategy.BASIC_AUTH;
     }
-
     @Override
     public HeaderResolution resolve(ResolutionContext ctx) {
         String user = ctx.secrets().getOrDefault("BASIC_USER", "admin");
