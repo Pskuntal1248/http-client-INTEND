@@ -20,7 +20,6 @@ import java.util.Map;
 
 @Service
 public class IntendServiceImpl implements IntendService {
-
     private final ContextRepository repository;
     private final HeaderEngine engine;
     private final RequestExecutor executor;
