@@ -135,13 +135,15 @@ public class MainWindow extends Application {
         authBox.getItems().addAll(RequestIntent.AuthStrategy.values());
         authBox.setValue(RequestIntent.AuthStrategy.NONE);
 
-        urlField = new TextField("https://httpbin.org/post");
+        urlField = new TextField();
+        urlField.setPromptText("https://api.example.com/endpoint");
         HBox.setHgrow(urlField, Priority.ALWAYS);
 
         Button sendBtn = new Button("SEND");
         sendBtn.setStyle("-fx-background-color: #007bff; -fx-text-fill: white; -fx-font-weight: bold;");
 
-        requestBody = new TextArea("{\"hello\": \"history\"}");
+        requestBody = new TextArea();
+        requestBody.setPromptText("Request body (JSON)");
         requestBody.setPrefHeight(100);
         requestBody.setFont(Font.font("Monospaced"));
 
