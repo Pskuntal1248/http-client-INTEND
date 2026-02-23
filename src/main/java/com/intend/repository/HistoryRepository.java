@@ -14,7 +14,13 @@ import java.util.List;
 @Repository
 public class HistoryRepository {
 
-    private final File file = new File("history.json");
+    private final File file = resolveDataFile("history.json");
+
+    private static File resolveDataFile(String name) {
+        File dir = new File(System.getProperty("user.home"), ".intend");
+        dir.mkdirs();
+        return new File(dir, name);
+    }
     private final ObjectMapper mapper = new ObjectMapper();
     private final List<HistoryItem> cache = new ArrayList<>();
 
