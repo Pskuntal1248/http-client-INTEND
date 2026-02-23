@@ -12,8 +12,14 @@ public class FileStateRepository implements StateRepository {
     private final File file;
     private final Properties props;
 
+    private static File resolveDataFile(String name) {
+        File dir = new File(System.getProperty("user.home"), ".intend");
+        dir.mkdirs();
+        return new File(dir, name);
+    }
+
     public FileStateRepository() {
-        this.file = new File(".intend-state.properties");
+        this.file = resolveDataFile("intend-state.properties");
         this.props = new Properties();
         load();
     }
