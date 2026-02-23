@@ -9,7 +9,13 @@ import java.io.IOException;
 @Repository
 public class ConfigRepository {
 
-    private final File file = new File("intend-config.json");
+    private final File file = resolveDataFile("intend-config.json");
+
+    private static File resolveDataFile(String name) {
+        File dir = new File(System.getProperty("user.home"), ".intend");
+        dir.mkdirs();
+        return new File(dir, name);
+    }
     private final ObjectMapper mapper = new ObjectMapper();
     private ConfigData cache = new ConfigData();
 
