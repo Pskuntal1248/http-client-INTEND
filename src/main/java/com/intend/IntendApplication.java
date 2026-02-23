@@ -26,7 +26,9 @@ public class IntendApplication implements CommandLineRunner, ExitCodeGenerator {
 
     @Override
     public void run(String... args) {
-        exitCode = new CommandLine(command, factory).execute(args);
+        if (args.length > 0) {
+            exitCode = new CommandLine(command, factory).execute(args);
+        }
     }
 
     @Override
