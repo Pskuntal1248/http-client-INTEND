@@ -111,55 +111,11 @@ Download the installer for your platform from [Releases](https://github.com/psku
 
 ## The Workspace
 
-Intend is a single-window workspace with a history sidebar, request editor, and response viewer.
+Intend is a single-window workspace with a history sidebar, request editor, and response viewer — all in a native dark-themed interface.
 
-```mermaid
-block-beta
-    columns 5
-
-    block:topbar:5
-        settings["⚙ Settings"]
-        toggle["◀ Toggle"]
-        method["METHOD ▼"]
-        auth["AUTH ▼"]
-        env["ENV ▼"]
-    end
-
-    block:urlbar:5
-        url["https://api.example.com/users"]:4
-        send["SEND"]
-    end
-
-    block:sidebar:1
-        logo["INTEND"]
-        space
-        history["HISTORY"]
-        h1["POST /users  14:32"]
-        h2["GET /posts   14:30"]
-        h3["DELETE /1    14:28"]
-    end
-
-    block:main:4
-        reqLabel["REQUEST"]
-        body["Body: name, email, id with {{uuid}}"]
-        chain["☑ Chain / Extract Variable → USER_ID=/id"]
-        space
-        resLabel["RESPONSE"]
-        response["id: abc-123, name: Alice"]
-        status["200 Success  •  142 ms  •  1.3 KB"]
-    end
-
-    style topbar fill:#1a1a2e,stroke:#333,color:#fff
-    style urlbar fill:#1a1a2e,stroke:#333,color:#fff
-    style send fill:#E63946,stroke:#E63946,color:#fff
-    style sidebar fill:#111827,stroke:#333,color:#ccc
-    style logo fill:#E63946,stroke:#E63946,color:#fff
-    style main fill:#1e1e2e,stroke:#333,color:#ccc
-    style status fill:#0f3460,stroke:#4ADE80,color:#4ADE80
-    style h1 fill:#1e293b,stroke:#60A5FA,color:#60A5FA
-    style h2 fill:#1e293b,stroke:#4ADE80,color:#4ADE80
-    style h3 fill:#1e293b,stroke:#FF3B3B,color:#FF3B3B
-```
+<p align="center">
+  <img src="intend-workspace.png" alt="Intend API Workspace" width="900" />
+</p>
 
 ### Workspace controls
 
