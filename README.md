@@ -113,39 +113,52 @@ Download the installer for your platform from [Releases](https://github.com/psku
 
 Intend is a single-window workspace with a history sidebar, request editor, and response viewer.
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│  [⚙ Settings] [◀ Toggle] [METHOD ▼] [AUTH ▼] [ENV ▼]           │
-│  ┌────────────────────────────────────────────────────┐  [SEND] │
-│  │  https://api.example.com/users                     │         │
-│  └────────────────────────────────────────────────────┘         │
-├────────────────┬─────────────────────────────────────────────────┤
-│                │                                                 │
-│  ┌──────────┐  │  REQUEST                                        │
-│  │  INTEND   │  │  ┌───────────────────────────────────────────┐  │
-│  │  (logo)  │  │  │ [Attach File]  [Clear]  No file selected  │  │
-│  └──────────┘  │  ├───────────────────────────────────────────┤  │
-│                │  │ {                                          │  │
-│  HISTORY       │  │   "name": "Alice",                        │  │
-│                │  │   "email": "{{randomEmail}}",              │  │
-│  ┌───────────┐ │  │   "id": "{{uuid}}"                        │  │
-│  │ POST /users│ │  │ }                                         │  │
-│  │ 14:32:01  │ │  └───────────────────────────────────────────┘  │
-│  ├───────────┤ │  □ Chain / Extract Variable                     │
-│  │ GET /posts │ │  ┌───────────────────────────────────────────┐  │
-│  │ 14:30:45  │ │  │ USER_ID=/id                                │  │
-│  ├───────────┤ │  └───────────────────────────────────────────┘  │
-│  │ DELETE /1  │ │                                                 │
-│  │ 14:28:12  │ │  RESPONSE                                       │
-│  └───────────┘ │  ┌───────────────────────────────────────────┐  │
-│                │  │ {                                          │  │
-│                │  │   "id": "abc-123",                         │  │
-│                │  │   "name": "Alice",                         │  │
-│                │  │   "email": "user_4821@example.com"         │  │
-│                │  │ }                                          │  │
-│                │  └───────────────────────────────────────────┘  │
-│                │  200 Success  •  142 ms  •  1.3 KB              │
-└────────────────┴─────────────────────────────────────────────────┘
+```mermaid
+block-beta
+    columns 5
+
+    block:topbar:5
+        settings["⚙ Settings"]
+        toggle["◀ Toggle"]
+        method["METHOD ▼"]
+        auth["AUTH ▼"]
+        env["ENV ▼"]
+    end
+
+    block:urlbar:5
+        url["https://api.example.com/users"]:4
+        send["SEND"]
+    end
+
+    block:sidebar:1
+        logo["INTEND"]
+        space
+        history["HISTORY"]
+        h1["POST /users  14:32"]
+        h2["GET /posts   14:30"]
+        h3["DELETE /1    14:28"]
+    end
+
+    block:main:4
+        reqLabel["REQUEST"]
+        body["Body: name, email, id with {{uuid}}"]
+        chain["☑ Chain / Extract Variable → USER_ID=/id"]
+        space
+        resLabel["RESPONSE"]
+        response["id: abc-123, name: Alice"]
+        status["200 Success  •  142 ms  •  1.3 KB"]
+    end
+
+    style topbar fill:#1a1a2e,stroke:#333,color:#fff
+    style urlbar fill:#1a1a2e,stroke:#333,color:#fff
+    style send fill:#E63946,stroke:#E63946,color:#fff
+    style sidebar fill:#111827,stroke:#333,color:#ccc
+    style logo fill:#E63946,stroke:#E63946,color:#fff
+    style main fill:#1e1e2e,stroke:#333,color:#ccc
+    style status fill:#0f3460,stroke:#4ADE80,color:#4ADE80
+    style h1 fill:#1e293b,stroke:#60A5FA,color:#60A5FA
+    style h2 fill:#1e293b,stroke:#4ADE80,color:#4ADE80
+    style h3 fill:#1e293b,stroke:#FF3B3B,color:#FF3B3B
 ```
 
 ### Workspace controls
@@ -436,48 +449,164 @@ jobs:
 
 Intend follows a clean layered architecture. The GUI sits on top of the same engine that powers everything.
 
+### System overview
+
+```mermaid
+flowchart TB
+    subgraph GUI["GUI Layer"]
+        MW["MainWindow\nJavaFX Workspace"]
+    end
+
+    subgraph SERVICE["Service Layer"]
+        IS["IntendService\nOrchestrator"]
+    end
+
+    subgraph ENGINES["Resolution Engines"]
+        TE["Template Engine\n{{uuid}}, {{timestamp}}"]
+        HE["Header Engine\nSPI Plugin Runner"]
+    end
+
+    subgraph PROVIDERS["Header Providers — ordered"]
+        PP["ProtocolProvider\norder 10\nContent-Type, Accept"]
+        IP["IdempotencyProvider\norder 50\nIdempotency-Key, X-Request-ID"]
+        AK["ApiKeyProvider\norder 90\nX-API-KEY"]
+        BA["BasicAuthProvider\norder 90\nAuthorization: Basic"]
+        BT["BearerTokenProvider\norder 91\nAuthorization: Bearer"]
+    end
+
+    subgraph EXECUTION["Execution Layer"]
+        RE["JavaHttpClientExecutor\nHTTP/2, TLS, Streaming, Multipart"]
+    end
+
+    subgraph PERSISTENCE["Persistence Layer"]
+        HR["HistoryRepository\nhistory.json"]
+        CR["ConfigRepository\nintend-config.json"]
+        SR["StateRepository\nintend-state.properties"]
+        VR["VariableRepository\nIn-memory store"]
+    end
+
+    MW -->|"RequestIntent"| IS
+    IS --> TE
+    IS --> HE
+    IS -->|"save request"| HR
+    IS -->|"capture variables"| VR
+    TE -->|"resolved URL and body"| IS
+    HE --> PP
+    HE --> IP
+    HE --> AK
+    HE --> BA
+    HE --> BT
+    HE -->|"resolved headers"| IS
+    IS -->|"intent + headers"| RE
+    RE -->|"ExecutionResult"| IS
+    IS -->|"result"| MW
+    IP -->|"key lookup/save"| SR
+    AK -->|"read config"| CR
+    BA -->|"read config"| CR
+    BT -->|"read config"| CR
+    TE -->|"read variables"| VR
+
+    classDef guiStyle fill:#1a1a2e,stroke:#E63946,color:#ffffff
+    classDef serviceStyle fill:#16213e,stroke:#60A5FA,color:#ffffff
+    classDef engineStyle fill:#0f3460,stroke:#4ADE80,color:#ffffff
+    classDef providerStyle fill:#1b1b2f,stroke:#C084FC,color:#ffffff
+    classDef execStyle fill:#1a1a2e,stroke:#FBBF24,color:#ffffff
+    classDef persistStyle fill:#1b1b2f,stroke:#808080,color:#cccccc
+
+    class MW guiStyle
+    class IS serviceStyle
+    class TE,HE engineStyle
+    class PP,IP,AK,BA,BT providerStyle
+    class RE execStyle
+    class HR,CR,SR,VR persistStyle
 ```
-┌─────────────────────────────────────────────────────┐
-│                     GUI (JavaFX)                     │
-│         MainWindow — workspace, history, editor      │
-└──────────────────────┬───────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────┐
-│                  IntendService                       │
-│   Orchestrates: template → history → resolve → exec │
-└──────────┬──────────────────────────────────────────┘
-           │
-     ┌─────┴──────┐
-     ▼            ▼
-┌──────────┐ ┌──────────────────────────────────────┐
-│ Template │ │          Header Engine                 │
-│ Engine   │ │  Runs ordered HeaderProvider plugins   │
-│ {{var}}  │ │                                        │
-└──────────┘ │  ┌──────────┐  ┌──────────┐           │
-             │  │ Protocol │  │ API Key  │           │
-             │  │ Provider │  │ Provider │           │
-             │  │ order=10 │  │ order=90 │           │
-             │  └──────────┘  └──────────┘           │
-             │  ┌──────────┐  ┌──────────┐           │
-             │  │ Idempot. │  │ Bearer   │           │
-             │  │ Provider │  │ Provider │           │
-             │  │ order=50 │  │ order=91 │           │
-             │  └──────────┘  └──────────┘           │
-             │  ┌──────────┐                          │
-             │  │ Basic    │                          │
-             │  │ Auth     │                          │
-             │  │ order=90 │                          │
-             │  └──────────┘                          │
-             └──────────────────────────────────────┘
-                       │
-                       ▼
-             ┌──────────────────┐
-             │ Request Executor │
-             │ java.net.http    │
-             │ HTTP/2, TLS,     │
-             │ streaming        │
-             └──────────────────┘
+
+### Request lifecycle
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant MW as MainWindow
+    participant IS as IntendService
+    participant TE as TemplateEngine
+    participant HE as HeaderEngine
+    participant P as Providers
+    participant EX as HttpExecutor
+    participant R as Repositories
+
+    U->>MW: Fill URL, body, auth, env and click SEND
+    MW->>IS: executeRequestWithResult(intent, captures)
+
+    IS->>TE: process(url)
+    TE->>R: lookup stored variables
+    R-->>TE: variable values
+    TE-->>IS: resolved URL
+
+    IS->>TE: process(body)
+    TE-->>IS: resolved body
+
+    IS->>R: save to history.json
+
+    IS->>HE: execute(ResolutionContext)
+    HE->>P: ProtocolProvider.resolve()
+    P-->>HE: Content-Type, Accept
+    HE->>P: IdempotencyProvider.resolve()
+    P->>R: lookup/save idempotency key
+    R-->>P: key
+    P-->>HE: Idempotency-Key, X-Request-ID
+    HE->>P: AuthProvider.resolve()
+    P->>R: read credentials from config
+    R-->>P: token/key
+    P-->>HE: Authorization header
+    HE-->>IS: all resolved headers
+
+    IS->>EX: execute(intent, headers)
+    EX-->>IS: ExecutionResult (status, body, time, size)
+
+    IS->>R: captureVariables(response, captures)
+
+    IS-->>MW: ExecutionResult
+    MW-->>U: Display formatted response + status bar
+```
+
+### How header resolution works
+
+```mermaid
+flowchart LR
+    subgraph INPUT["User Input"]
+        method["Method\nGET, POST, PUT\nDELETE, PATCH"]
+        payload["Payload\nJSON, XML, Text, File"]
+        auth["Auth Strategy\nNONE, API_KEY\nBASIC_AUTH, BEARER_TOKEN"]
+    end
+
+    subgraph ENGINE["Header Engine"]
+        direction TB
+        p1["1. ProtocolProvider"]
+        p2["2. IdempotencyProvider"]
+        p3["3. Auth Provider"]
+        p1 --> p2 --> p3
+    end
+
+    subgraph HEADERS["Resolved Headers"]
+        h1["Accept: */*"]
+        h2["Content-Type: application/json"]
+        h3["Idempotency-Key: 550e8400..."]
+        h4["X-Request-ID: 550e8400..."]
+        h5["Authorization: Bearer eyJ..."]
+    end
+
+    method --> ENGINE
+    payload --> ENGINE
+    auth --> ENGINE
+    ENGINE --> HEADERS
+
+    classDef inputStyle fill:#1a1a2e,stroke:#60A5FA,color:#ffffff
+    classDef engineStyle fill:#0f3460,stroke:#4ADE80,color:#ffffff
+    classDef headerStyle fill:#1b1b2f,stroke:#FBBF24,color:#ffffff
+
+    class method,payload,auth inputStyle
+    class p1,p2,p3 engineStyle
+    class h1,h2,h3,h4,h5 headerStyle
 ```
 
 ### Provider execution order
