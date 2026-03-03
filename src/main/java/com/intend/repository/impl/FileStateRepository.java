@@ -1,5 +1,6 @@
 package com.intend.repository.impl;
 
+import com.intend.repository.DataDir;
 import com.intend.repository.StateRepository;
 import org.springframework.stereotype.Repository;
 
@@ -12,14 +13,8 @@ public class FileStateRepository implements StateRepository {
     private final File file;
     private final Properties props;
 
-    private static File resolveDataFile(String name) {
-        File dir = new File(System.getProperty("user.home"), ".intend");
-        dir.mkdirs();
-        return new File(dir, name);
-    }
-
     public FileStateRepository() {
-        this.file = resolveDataFile("intend-state.properties");
+        this.file = DataDir.resolve("intend-state.properties");
         this.props = new Properties();
         load();
     }
