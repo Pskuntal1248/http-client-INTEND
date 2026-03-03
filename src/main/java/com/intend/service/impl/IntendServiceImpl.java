@@ -3,9 +3,11 @@ package com.intend.service.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intend.context.ResolutionContext;
+import com.intend.core.MultipartPayload;
 import com.intend.core.RequestIntent;
 import com.intend.engine.HeaderEngine;
 import com.intend.engine.TemplateEngine;
+import com.intend.execution.ExecutionResult;
 import com.intend.execution.RequestExecutor;
 import com.intend.repository.ConfigRepository;
 import com.intend.repository.ContextRepository;
@@ -49,27 +51,21 @@ public class IntendServiceImpl implements IntendService {
 
     @Override
     public void executeRequest(RequestIntent intent) {
-        // 1. Context
         ResolutionContext context = repository.loadContext(intent);
-
-        // 2. Brain (Headers)
         Map<String, String> headers = engine.execute(context);
+        ExecutionResult result = executor.execute(intent, headers);
 
-        // 3. Hands (Execution)
-        String response = executor.execute(intent, headers);
-
-        // 4. Output Result
         System.out.println("\nResponse Received:");
-        System.out.println(response);
+        System.out.println(result.toPrettyString());
     }
 
     @Override
-    public String executeRequestAsString(RequestIntent intent) {
-        return executeRequestAsString(intent, null);
+    public ExecutionResult executeRequestWithResult(RequestIntent intent) {
+        return executeRequestWithResult(intent, null);
     }
 
     @Override
-    public String executeRequestAsString(RequestIntent intent, Map<String, String> captures) {
+    public ExecutionResult executeRequestWithResult(RequestIntent intent, Map<String, String> captures) {
         RequestIntent resolvedIntent = resolveIntent(intent);
 
         historyRepository.add(
@@ -80,11 +76,13 @@ public class IntendServiceImpl implements IntendService {
 
         ResolutionContext context = repository.loadContext(resolvedIntent);
         Map<String, String> headers = engine.execute(context);
-        String rawResponse = executor.execute(resolvedIntent, headers);
+        ExecutionResult result = executor.execute(resolvedIntent, headers);
 
-        captureVariables(rawResponse, captures);
+        if (result.statusCode() > 0 && result.body() != null) {
+            captureVariables(result.body(), captures);
+        }
 
-        return rawResponse;
+        return result;
     }
 
     private RequestIntent resolveIntent(RequestIntent intent) {
@@ -102,6 +100,11 @@ public class IntendServiceImpl implements IntendService {
     }
 
     private Object resolvePayload(Object payload) {
+        if (payload instanceof MultipartPayload mp) {
+            String resolvedBody = mp.hasBody() ? templateEngine.process(mp.body()) : null;
+            return new MultipartPayload(mp.file(), resolvedBody);
+        }
+
         if (payload instanceof File) {
             return payload;
         }
@@ -109,13 +112,14 @@ public class IntendServiceImpl implements IntendService {
         return templateEngine.process(payload == null ? null : payload.toString());
     }
 
-    private void captureVariables(String rawResponse, Map<String, String> captures) {
+    private void captureVariables(String responseBody, Map<String, String> captures) {
         if (captures == null || captures.isEmpty()) {
             return;
         }
 
         try {
-            JsonNode root = mapper.readTree(extractJsonFromBody(rawResponse));
+            String json = extractJson(responseBody);
+            JsonNode root = mapper.readTree(json);
             for (Map.Entry<String, String> entry : captures.entrySet()) {
                 JsonNode valueNode = root.at(entry.getValue());
                 if (!valueNode.isMissingNode()) {
@@ -127,11 +131,10 @@ public class IntendServiceImpl implements IntendService {
         }
     }
 
-    private String extractJsonFromBody(String rawResponse) {
-        if (rawResponse != null && rawResponse.contains("{")) {
-            return rawResponse.substring(rawResponse.indexOf('{'));
+    private String extractJson(String text) {
+        if (text != null && text.contains("{")) {
+            return text.substring(text.indexOf('{'));
         }
-
         return "{}";
     }
 
