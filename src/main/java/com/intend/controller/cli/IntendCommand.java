@@ -1,6 +1,7 @@
 package com.intend.controller.cli;
 
 import com.intend.core.RequestIntent;
+import com.intend.execution.ExecutionResult;
 import com.intend.service.IntendService;
 import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
@@ -51,10 +52,17 @@ public class IntendCommand implements Callable<Integer> {
                 environment
             );
 
-            service.executeRequest(intent);
+            ExecutionResult result = service.executeRequestWithResult(intent);
 
-            return 0;
+            System.out.println("\n── Response ──────────────────────────────");
+            System.out.println(result.toPrettyString());
+            System.out.println("──────────────────────────────────────────");
 
+            return result.isSuccess() ? 0 : 1;
+
+        } catch (IllegalArgumentException e) {
+            System.err.println("Invalid input: " + e.getMessage());
+            return 1;
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
             return 1;
