@@ -27,7 +27,7 @@ public class HeaderEngine {
                 if (resolution.success()) {
                     headers.putAll(resolution.headers());
                 } else {
-                    System.err.println("⚠️ Provider failed: " + resolution.errorMessage());
+                    System.err.println(" Provider failed: " + resolution.errorMessage());
                 }
             }
         }
