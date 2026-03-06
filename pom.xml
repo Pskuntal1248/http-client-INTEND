@@ -29,12 +29,6 @@
         </dependency>
 
         <dependency>
-            <groupId>info.picocli</groupId>
-            <artifactId>picocli-spring-boot-starter</artifactId>
-            <version>4.7.6</version>
-        </dependency>
-
-        <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
             <version>${javafx.version}</version>
@@ -74,6 +68,16 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>
+                        --add-opens java.base/java.lang=ALL-UNNAMED
+                        --add-opens java.base/java.lang.reflect=ALL-UNNAMED
+                    </argLine>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
@@ -94,11 +98,30 @@
                     <mainClass>com.intend.ui.Launcher</mainClass>
                 </configuration>
             </plugin>
+            <!-- Stage only the fat JAR into a clean folder for jpackage -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>stage-jar-for-jpackage</id>
+                        <phase>package</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <target>
+                                <mkdir dir="${project.build.directory}/jpackage-input"/>
+                                <copy file="${project.build.directory}/${project.build.finalName}.jar"
+                                      todir="${project.build.directory}/jpackage-input"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
     <profiles>
-        <!-- macOS: produces .dmg installer -->
+    
         <profile>
             <id>package-mac</id>
             <activation>
@@ -114,18 +137,26 @@
                             <name>Intend</name>
                             <appVersion>1.0.0</appVersion>
                             <vendor>Intend</vendor>
-                            <input>${project.build.directory}</input>
+                            <description>Intent-based HTTP client</description>
+                            <copyright>Copyright 2024 Intend</copyright>
+                            <icon>${project.basedir}/intend-icon.icns</icon>
+                            <input>${project.build.directory}/jpackage-input</input>
                             <mainJar>${project.build.finalName}.jar</mainJar>
-                            <mainClass>com.intend.ui.Launcher</mainClass>
-                            <destination>${project.build.directory}/installer</destination>
+                            <mainClass>org.springframework.boot.loader.launch.JarLauncher</mainClass>
+                            <destination>${project.basedir}</destination>
                             <type>DMG</type>
+                            <macPackageIdentifier>com.intend.app</macPackageIdentifier>
+                            <macPackageName>Intend</macPackageName>
                             <javaOptions>
                                 <option>--add-opens=java.base/java.lang=ALL-UNNAMED</option>
+                                <option>--add-opens=java.base/java.lang.reflect=ALL-UNNAMED</option>
+                                <option>--add-opens=java.base/java.io=ALL-UNNAMED</option>
+                                <option>--enable-native-access=ALL-UNNAMED</option>
                             </javaOptions>
                         </configuration>
                         <executions>
                             <execution>
-                                <id>jpackage</id>
+                                <id>jpackage-dmg</id>
                                 <phase>package</phase>
                                 <goals>
                                     <goal>jpackage</goal>
@@ -137,7 +168,6 @@
             </build>
         </profile>
 
-        <!-- Windows: produces .msi installer -->
         <profile>
             <id>package-windows</id>
             <activation>
@@ -153,20 +183,29 @@
                             <name>Intend</name>
                             <appVersion>1.0.0</appVersion>
                             <vendor>Intend</vendor>
-                            <input>${project.build.directory}</input>
+                            <description>Intent-based HTTP client</description>
+                            <copyright>Copyright 2026 Intend</copyright>
+                            <icon>${project.basedir}/intend-icon.icns</icon>
+                            <input>${project.build.directory}/jpackage-input</input>
                             <mainJar>${project.build.finalName}.jar</mainJar>
-                            <mainClass>com.intend.ui.Launcher</mainClass>
-                            <destination>${project.build.directory}/installer</destination>
+                            <mainClass>org.springframework.boot.loader.launch.JarLauncher</mainClass>
+                            <destination>${project.basedir}</destination>
                             <type>MSI</type>
                             <winMenu>true</winMenu>
                             <winShortcut>true</winShortcut>
+                            <winDirChooser>true</winDirChooser>
+                            <winPerUserInstall>true</winPerUserInstall>
+                            <winMenuGroup>Intend</winMenuGroup>
                             <javaOptions>
                                 <option>--add-opens=java.base/java.lang=ALL-UNNAMED</option>
+                                <option>--add-opens=java.base/java.lang.reflect=ALL-UNNAMED</option>
+                                <option>--add-opens=java.base/java.io=ALL-UNNAMED</option>
+                                <option>--enable-native-access=ALL-UNNAMED</option>
                             </javaOptions>
                         </configuration>
                         <executions>
                             <execution>
-                                <id>jpackage</id>
+                                <id>jpackage-msi</id>
                                 <phase>package</phase>
                                 <goals>
                                     <goal>jpackage</goal>
@@ -177,10 +216,8 @@
                 </plugins>
             </build>
         </profile>
-
-        <!-- Linux: produces .deb installer -->
         <profile>
-            <id>package-linux</id>
+            <id>package-linux-deb</id>
             <activation>
                 <os><family>unix</family><name>Linux</name></os>
             </activation>
@@ -194,20 +231,73 @@
                             <name>Intend</name>
                             <appVersion>1.0.0</appVersion>
                             <vendor>Intend</vendor>
-                            <input>${project.build.directory}</input>
+                            <description>Intent-based HTTP client with GUI</description>
+                            <copyright>Copyright 2026 Intend</copyright>
+                            <icon>${project.basedir}/intend-icon.icns</icon>
+                            <input>${project.build.directory}/jpackage-input</input>
                             <mainJar>${project.build.finalName}.jar</mainJar>
-                            <mainClass>com.intend.ui.Launcher</mainClass>
-                            <destination>${project.build.directory}/installer</destination>
+                            <mainClass>org.springframework.boot.loader.launch.JarLauncher</mainClass>
+                            <destination>${project.basedir}</destination>
                             <type>DEB</type>
                             <linuxShortcut>true</linuxShortcut>
                             <linuxMenuGroup>Development</linuxMenuGroup>
+                            <linuxAppCategory>Development</linuxAppCategory>
+                            <linuxDebMaintainer>intend@example.com</linuxDebMaintainer>
                             <javaOptions>
                                 <option>--add-opens=java.base/java.lang=ALL-UNNAMED</option>
+                                <option>--add-opens=java.base/java.lang.reflect=ALL-UNNAMED</option>
+                                <option>--add-opens=java.base/java.io=ALL-UNNAMED</option>
+                                <option>--enable-native-access=ALL-UNNAMED</option>
                             </javaOptions>
                         </configuration>
                         <executions>
                             <execution>
-                                <id>jpackage</id>
+                                <id>jpackage-deb</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>jpackage</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>package-linux-rpm</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.panteleyev</groupId>
+                        <artifactId>jpackage-maven-plugin</artifactId>
+                        <version>1.6.5</version>
+                        <configuration>
+                            <name>Intend</name>
+                            <appVersion>1.0.0</appVersion>
+                            <vendor>Intend</vendor>
+                            <description>Intent-based HTTP client with GUI</description>
+                            <copyright>Copyright 2026 Intend</copyright>
+                            <icon>${project.basedir}/intend-icon.icns</icon>
+                            <input>${project.build.directory}/jpackage-input</input>
+                            <mainJar>${project.build.finalName}.jar</mainJar>
+                            <mainClass>org.springframework.boot.loader.launch.JarLauncher</mainClass>
+                            <destination>${project.basedir}</destination>
+                            <type>RPM</type>
+                            <linuxShortcut>true</linuxShortcut>
+                            <linuxMenuGroup>Development</linuxMenuGroup>
+                            <linuxAppCategory>Development</linuxAppCategory>
+                            <linuxRpmLicenseType>Proprietary</linuxRpmLicenseType>
+                            <javaOptions>
+                                <option>--add-opens=java.base/java.lang=ALL-UNNAMED</option>
+                                <option>--add-opens=java.base/java.lang.reflect=ALL-UNNAMED</option>
+                                <option>--add-opens=java.base/java.io=ALL-UNNAMED</option>
+                                <option>--enable-native-access=ALL-UNNAMED</option>
+                            </javaOptions>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>jpackage-rpm</id>
                                 <phase>package</phase>
                                 <goals>
                                     <goal>jpackage</goal>
