@@ -4,8 +4,28 @@
 /.classpath
 /.project
 /.settings/
-/.idea
+.idea/
+.vscode/
 *.iml
 
 !.mvn/wrapper/maven-wrapper.jar
 !.mvn/wrapper/maven-wrapper.properties
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Runtime data (stored in ~/.intend/)
+.intend-state.properties
+history.json
+
+# Build artifacts
+*.dmg
+*.msi
+*.exe
+*.deb
+*.rpm
+*.ico
+
+# Temp/scratch files
+message*.txt
