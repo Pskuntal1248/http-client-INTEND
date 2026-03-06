@@ -12,6 +12,7 @@ import com.intend.execution.RequestExecutor;
 import com.intend.repository.ConfigRepository;
 import com.intend.repository.ContextRepository;
 import com.intend.repository.HistoryRepository;
+import com.intend.repository.SavedRequestRepository;
 import com.intend.repository.VariableRepository;
 import com.intend.service.IntendService;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,7 @@ public class IntendServiceImpl implements IntendService {
     private final TemplateEngine templateEngine;
     private final VariableRepository variableRepository;
     private final ConfigRepository configRepository;
+    private final SavedRequestRepository savedRequestRepository;
     private final ObjectMapper mapper = new ObjectMapper();
 
     public IntendServiceImpl(
@@ -38,7 +40,8 @@ public class IntendServiceImpl implements IntendService {
         HistoryRepository historyRepository,
         TemplateEngine templateEngine,
         VariableRepository variableRepository,
-        ConfigRepository configRepository
+        ConfigRepository configRepository,
+        SavedRequestRepository savedRequestRepository
     ) {
         this.repository = repository;
         this.engine = engine;
@@ -47,6 +50,7 @@ public class IntendServiceImpl implements IntendService {
         this.templateEngine = templateEngine;
         this.variableRepository = variableRepository;
         this.configRepository = configRepository;
+        this.savedRequestRepository = savedRequestRepository;
     }
 
     @Override
@@ -144,5 +148,9 @@ public class IntendServiceImpl implements IntendService {
 
     public ConfigRepository getConfigRepository() {
         return configRepository;
+    }
+
+    public SavedRequestRepository getSavedRequests() {
+        return savedRequestRepository;
     }
 }
