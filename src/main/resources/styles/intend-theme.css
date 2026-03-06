@@ -1,22 +1,4 @@
-/* =============================================================
-   Intend — Professional Dark Theme
-   =============================================================
-   Palette
-   -------
-   Primary BG       #121212
-   Surface / cards   #1E1E1E
-   Elevated surface  #252525
-   Primary text      #E6E6E6
-   Secondary text    #B3B3B3
-   Muted text        #808080
-   Border            #2A2A2A
-   Accent Red        #FF3B3B
-   Accent Red hover  #E62E2E
-   Accent Red dark   #CC2020
-   Focus ring        #FF3B3B40
-   ============================================================= */
 
-/* ---- Root -------------------------------------------------- */
 .root {
     -fx-base: #121212;
     -fx-background: #121212;
@@ -408,6 +390,55 @@
 /* ---- Separator --------------------------------------------- */
 .separator .line {
     -fx-border-color: #2A2A2A;
+}
+
+/* ---- Dialog ------------------------------------------------ */
+.dialog-pane {
+    -fx-background-color: #1E1E1E;
+}
+
+.dialog-pane .content {
+    -fx-background-color: #1E1E1E;
+}
+
+.dialog-pane .label {
+    -fx-text-fill: #E6E6E6;
+}
+
+.dialog-pane .header-panel {
+    -fx-background-color: #1E1E1E;
+}
+
+.dialog-pane .button-bar {
+    -fx-background-color: #1E1E1E;
+}
+
+.dialog-pane .button-bar .button {
+    -fx-background-color: #252525;
+    -fx-text-fill: #E6E6E6;
+    -fx-border-color: #3A3A3A;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-min-height: 32;
+    -fx-padding: 6 16;
+    -fx-cursor: hand;
+}
+
+.dialog-pane .button-bar .button:hover {
+    -fx-background-color: #333333;
+    -fx-border-color: #4A4A4A;
+}
+
+.dialog-pane .button-bar .button:default {
+    -fx-background-color: #FF3B3B;
+    -fx-text-fill: white;
+    -fx-border-color: #FF3B3B;
+    -fx-font-weight: bold;
+}
+
+.dialog-pane .button-bar .button:default:hover {
+    -fx-background-color: #E62E2E;
+    -fx-border-color: #E62E2E;
 }
 
 /* ---- Tooltip ----------------------------------------------- */
