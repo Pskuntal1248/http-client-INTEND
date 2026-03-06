@@ -1,10 +1,13 @@
 package com.intend.ui;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.intend.core.MultipartPayload;
 import com.intend.core.RequestIntent;
 import com.intend.engine.TemplateEngine;
+import com.intend.execution.ExecutionResult;
 import com.intend.repository.ConfigRepository;
 import com.intend.repository.HistoryRepository;
+import com.intend.repository.SavedRequestRepository;
 import com.intend.service.impl.IntendServiceImpl;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -15,6 +18,8 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -25,7 +30,12 @@ import javax.imageio.ImageIO;
 import java.awt.Taskbar;
 import java.io.File;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class MainWindow extends Application {
@@ -51,6 +61,15 @@ public class MainWindow extends Application {
     private boolean historyCollapsed;
     private double historyDividerPosition = 0.3;
     private File selectedFile;
+    private VBox paramsPane;
+    private VBox bodyPane;
+    private Button bodyTabBtn;
+    private Button paramsTabBtn;
+    private final List<ParamRow> paramRows = new ArrayList<>();
+    private ListView<SavedRequestRepository.SavedRequest> savedList;
+    private ComboBox<String> envBox;
+
+    private record ParamRow(CheckBox enabled, TextField key, TextField value) {}
 
     @Override
     public void init() {
@@ -114,7 +133,7 @@ public class MainWindow extends Application {
         contextMenu.getItems().add(deleteItem);
         historyList.setContextMenu(contextMenu);
 
-        ImageView logoView = new ImageView(new Image(getClass().getResourceAsStream("/icons/intend-logo.png")));
+        ImageView logoView = new ImageView(new Image(getClass().getResourceAsStream("/icons/image.png")));
         logoView.setFitHeight(30);
         logoView.setPreserveRatio(true);
         HBox logoBox = new HBox(logoView);
@@ -125,7 +144,71 @@ public class MainWindow extends Application {
         historyLabel.setStyle("-fx-text-fill: #B3B3B3; -fx-font-size: 11px; -fx-font-weight: 600; -fx-letter-spacing: 1;");
         historyLabel.setPadding(new Insets(8, 0, 4, 0));
 
-        sidebar = new VBox(logoBox, historyLabel, historyList);
+        // -- Saved requests list --
+        Label savedLabel = new Label("SAVED");
+        savedLabel.setStyle("-fx-text-fill: #B3B3B3; -fx-font-size: 11px; -fx-font-weight: 600; -fx-letter-spacing: 1;");
+        savedLabel.setPadding(new Insets(12, 0, 4, 0));
+
+        savedList = new ListView<>();
+        savedList.setPrefHeight(150);
+        refreshSavedRequests();
+
+        savedList.setCellFactory(param -> new ListCell<>() {
+            @Override
+            protected void updateItem(SavedRequestRepository.SavedRequest item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    Label methodLabel = new Label(item.method());
+                    methodLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: " + getMethodColor(item.method()) + ";");
+                    methodLabel.setMinWidth(42);
+
+                    Label nameLabel = new Label(item.name());
+                    nameLabel.setStyle("-fx-text-fill: #E6E6E6; -fx-font-size: 12px; -fx-font-weight: 500;");
+                    nameLabel.setMaxWidth(160);
+
+                    HBox row = new HBox(6, methodLabel, nameLabel);
+                    row.setAlignment(Pos.CENTER_LEFT);
+                    row.setPadding(new Insets(2, 0, 2, 0));
+                    setGraphic(row);
+                }
+            }
+        });
+
+        savedList.setOnMouseClicked(e -> {
+            SavedRequestRepository.SavedRequest selected = savedList.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                loadSavedRequest(selected);
+            }
+        });
+
+        ContextMenu savedContextMenu = new ContextMenu();
+        MenuItem deleteSavedItem = new MenuItem("Delete");
+        deleteSavedItem.setOnAction(e -> {
+            SavedRequestRepository.SavedRequest selected = savedList.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                intendService.getSavedRequests().delete(selected);
+                refreshSavedRequests();
+            }
+        });
+        MenuItem shareSavedItem = new MenuItem("Copy as JSON");
+        shareSavedItem.setOnAction(e -> {
+            SavedRequestRepository.SavedRequest selected = savedList.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                String json = intendService.getSavedRequests().toJson(selected);
+                ClipboardContent content = new ClipboardContent();
+                content.putString(json);
+                Clipboard.getSystemClipboard().setContent(content);
+                statusLabel.setText("Copied to clipboard");
+                statusLabel.setTextFill(Color.web("#4ADE80"));
+            }
+        });
+        savedContextMenu.getItems().addAll(shareSavedItem, deleteSavedItem);
+        savedList.setContextMenu(savedContextMenu);
+
+        sidebar = new VBox(logoBox, savedLabel, savedList, historyLabel, historyList);
         sidebar.getStyleClass().add("sidebar");
         sidebar.setPadding(new Insets(16));
         sidebar.setSpacing(8);
@@ -136,7 +219,7 @@ public class MainWindow extends Application {
         methodBox.setValue("POST");
         methodBox.setMinWidth(90);
 
-        ComboBox<String> envBox = new ComboBox<>();
+        envBox = new ComboBox<>();
         envBox.getItems().addAll("DEV", "PROD");
         envBox.setValue("DEV");
         envBox.setMinWidth(75);
@@ -171,8 +254,7 @@ public class MainWindow extends Application {
             if (file != null) {
                 selectedFile = file;
                 fileLabel.setText("File: " + file.getName());
-                requestBody.setDisable(true);
-                requestBody.setText("[File Selected: " + file.getAbsolutePath() + "]");
+                requestBody.setPromptText("Additional fields (JSON) — sent alongside the file");
                 methodBox.setValue("POST");
             }
         });
@@ -181,8 +263,7 @@ public class MainWindow extends Application {
         clearFileButton.setOnAction(event -> {
             selectedFile = null;
             fileLabel.setText("No file selected");
-            requestBody.setDisable(false);
-            requestBody.setText("");
+            requestBody.setPromptText("Request body (JSON)");
         });
 
         HBox fileSection = new HBox(10, fileButton, clearFileButton, fileLabel);
@@ -199,6 +280,56 @@ public class MainWindow extends Application {
 
         VBox captureSection = new VBox(5, chainToggle, captureField);
         captureSection.setPadding(new Insets(5, 0, 10, 0));
+
+        // -- Params tab: key-value table --
+        VBox paramsTable = new VBox(4);
+        paramsPane = new VBox(8, buildParamsHeader(), paramsTable);
+        paramsPane.setVisible(false);
+        paramsPane.setManaged(false);
+        addParamRow(paramsTable);
+
+        Button addParamBtn = new Button("+ Add Param");
+        addParamBtn.setStyle("-fx-font-size: 12px; -fx-text-fill: #B3B3B3; -fx-background-color: transparent; -fx-border-color: #3A3A3A; -fx-border-radius: 4; -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 4 12;");
+        addParamBtn.setOnAction(e -> addParamRow(paramsTable));
+        paramsPane.getChildren().add(addParamBtn);
+
+        // -- Body tab content --
+        bodyPane = new VBox(8, fileSection, requestBody);
+
+        // -- Tab toggle buttons --
+        bodyTabBtn = new Button("Body");
+        paramsTabBtn = new Button("Params");
+        String activeTabStyle = "-fx-background-color: transparent; -fx-text-fill: #E6E6E6; -fx-font-size: 12px; -fx-font-weight: 600; -fx-border-color: transparent transparent #FF3B3B transparent; -fx-border-width: 0 0 2 0; -fx-background-radius: 0; -fx-border-radius: 0; -fx-padding: 6 14; -fx-cursor: hand;";
+        String inactiveTabStyle = "-fx-background-color: transparent; -fx-text-fill: #808080; -fx-font-size: 12px; -fx-font-weight: 500; -fx-border-color: transparent; -fx-border-width: 0 0 2 0; -fx-background-radius: 0; -fx-border-radius: 0; -fx-padding: 6 14; -fx-cursor: hand;";
+
+        bodyTabBtn.setStyle(activeTabStyle);
+        paramsTabBtn.setStyle(inactiveTabStyle);
+
+        bodyTabBtn.setOnAction(e -> {
+            bodyPane.setVisible(true);
+            bodyPane.setManaged(true);
+            paramsPane.setVisible(false);
+            paramsPane.setManaged(false);
+            bodyTabBtn.setStyle(activeTabStyle);
+            paramsTabBtn.setStyle(inactiveTabStyle);
+        });
+
+        paramsTabBtn.setOnAction(e -> {
+            bodyPane.setVisible(false);
+            bodyPane.setManaged(false);
+            paramsPane.setVisible(true);
+            paramsPane.setManaged(true);
+            paramsTabBtn.setStyle(activeTabStyle);
+            bodyTabBtn.setStyle(inactiveTabStyle);
+        });
+
+        HBox tabBar = new HBox(0, bodyTabBtn, paramsTabBtn);
+        tabBar.setAlignment(Pos.CENTER_LEFT);
+        tabBar.setPadding(new Insets(0, 0, 4, 0));
+
+        // -- StackPane holds both panes, toggle controls visibility --
+        StackPane contentStack = new StackPane(bodyPane, paramsPane);
+        contentStack.setAlignment(Pos.TOP_LEFT);
 
         TextArea responseArea = new TextArea();
         responseArea.setEditable(false);
@@ -218,11 +349,19 @@ public class MainWindow extends Application {
         settingsButton.setTooltip(new Tooltip("Settings"));
         settingsButton.setOnAction(event -> openSettingsWindow());
 
-        HBox urlBar = new HBox(8, urlField, sendBtn);
+        Button saveBtn = new Button("Save");
+        saveBtn.setStyle("-fx-background-color: #252525; -fx-text-fill: #E6E6E6; -fx-font-size: 12px; -fx-font-weight: 500; -fx-border-color: #3A3A3A; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 6 14; -fx-cursor: hand;");
+        saveBtn.setOnAction(e -> showSaveDialog());
+
+        Button shareBtn = new Button("Share");
+        shareBtn.setStyle("-fx-background-color: #252525; -fx-text-fill: #E6E6E6; -fx-font-size: 12px; -fx-font-weight: 500; -fx-border-color: #3A3A3A; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 6 14; -fx-cursor: hand;");
+        shareBtn.setOnAction(e -> shareCurrentRequest());
+
+        HBox urlBar = new HBox(8, urlField, saveBtn, shareBtn, sendBtn);
         urlBar.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(urlField, Priority.ALWAYS);
 
-        topBarIcon = new ImageView(new Image(getClass().getResourceAsStream("/icons/intend-icon.png")));
+        topBarIcon = new ImageView(new Image(getClass().getResourceAsStream("/icons/image.png")));
         topBarIcon.setFitHeight(28);
         topBarIcon.setPreserveRatio(true);
         topBarIcon.setVisible(false);
@@ -242,7 +381,7 @@ public class MainWindow extends Application {
         responseLabel.setStyle("-fx-text-fill: #B3B3B3; -fx-font-size: 11px; -fx-font-weight: 600; -fx-letter-spacing: 1;");
         responseLabel.setPadding(new Insets(8, 0, 4, 0));
 
-        VBox requestSection = new VBox(8, requestLabel, fileSection, requestBody, captureSection);
+        VBox requestSection = new VBox(8, requestLabel, tabBar, contentStack, captureSection);
         requestSection.getStyleClass().add("request-section");
         requestSection.setPadding(new Insets(12));
 
@@ -268,11 +407,18 @@ public class MainWindow extends Application {
             new Thread(() -> {
                 try {
                     String rawUrl = urlField.getText();
-                    String resolvedUrl = templateEngine.process(rawUrl);
+                    String urlWithParams = appendQueryParams(rawUrl);
+                    String resolvedUrl = templateEngine.process(urlWithParams);
                     if (resolvedUrl.contains("{{")) {
                         throw new IllegalArgumentException("Unresolved URL template variables.");
                     }
-                    Object payload = selectedFile != null ? selectedFile : requestBody.getText();
+                    Object payload;
+                    if (selectedFile != null) {
+                        String bodyText = requestBody.getText();
+                        payload = new MultipartPayload(selectedFile, bodyText);
+                    } else {
+                        payload = requestBody.getText();
+                    }
                     RequestIntent intent = new RequestIntent(
                         RequestIntent.Method.valueOf(methodBox.getValue()),
                         URI.create(resolvedUrl),
@@ -283,13 +429,25 @@ public class MainWindow extends Application {
                     );
 
                     Map<String, String> captures = buildCaptures(captureField.getText());
-                    String rawResponse = intendService.executeRequestAsString(intent, captures);
-                    String prettyJson = prettyPrint(rawResponse);
-                    Integer statusCode = extractStatusCode(rawResponse);
+                    ExecutionResult result = intendService.executeRequestWithResult(intent, captures);
+
+                    // Pretty-print the body if it's JSON
+                    String prettyBody = prettyPrint(result.body());
 
                     Platform.runLater(() -> {
-                        responseArea.setText(prettyJson);
-                        updateStatusLabel(statusCode);
+                        if (result.statusCode() > 0) {
+                            // Build rich display: status category + time + size + body
+                            StringBuilder display = new StringBuilder();
+                            display.append(prettyBody);
+                            responseArea.setText(display.toString());
+                            updateStatusLabel(result.statusCode(), result.statusCategory(),
+                                    result.timeMs(), result.sizeBytes());
+                        } else {
+                            // Error result (timeout, DNS, SSL, etc.)
+                            responseArea.setText(result.body());
+                            statusLabel.setText(result.statusCategory());
+                            statusLabel.setTextFill(Color.web("#FF3B3B"));
+                        }
                         sendBtn.setDisable(false);
                         refreshHistory();
                     });
@@ -307,12 +465,12 @@ public class MainWindow extends Application {
         Scene scene = new Scene(splitPane, 1100, 750);
         scene.getStylesheets().add(getClass().getResource("/styles/intend-theme.css").toExternalForm());
         stage.setTitle("INTEND - API Workspace");
-        stage.getIcons().add(new Image(getClass().getResourceAsStream("/icons/intend-icon.png")));
+        stage.getIcons().add(new Image(getClass().getResourceAsStream("/icons/image.png")));
         try {
             if (Taskbar.isTaskbarSupported()) {
                 Taskbar taskbar = Taskbar.getTaskbar();
                 if (taskbar.isSupported(Taskbar.Feature.ICON_IMAGE)) {
-                    taskbar.setIconImage(ImageIO.read(getClass().getResourceAsStream("/icons/intend-icon.png")));
+                    taskbar.setIconImage(ImageIO.read(getClass().getResourceAsStream("/icons/image.png")));
                 }
             }
         } catch (Exception ignored) {}
@@ -324,57 +482,29 @@ public class MainWindow extends Application {
         historyList.getItems().setAll(intendService.getHistory().getAll());
     }
 
-    private String prettyPrint(String json) {
+    private String prettyPrint(String text) {
+        if (text == null) return "";
         try {
-            if (json.contains("{")) {
-                int start = json.indexOf("{");
-                Object obj = mapper.readValue(json.substring(start), Object.class);
-                return json.substring(0, start)
-                    + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
+            if (text.contains("{")) {
+                int start = text.indexOf("{");
+                Object obj = mapper.readValue(text.substring(start), Object.class);
+                return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
             }
         } catch (Exception ignored) {
-            return json;
+            return text;
         }
-        return json;
+        return text;
     }
 
-    private Integer extractStatusCode(String rawResponse) {
-        if (rawResponse == null) {
-            return null;
-        }
+    private void updateStatusLabel(int statusCode, String category, long timeMs, long sizeBytes) {
+        String sizeStr = sizeBytes < 1024
+                ? sizeBytes + " B"
+                : sizeBytes < 1024 * 1024
+                    ? String.format("%.1f KB", sizeBytes / 1024.0)
+                    : String.format("%.1f MB", sizeBytes / (1024.0 * 1024));
 
-        String prefix = "Status:";
-        int prefixIndex = rawResponse.indexOf(prefix);
-        if (prefixIndex == -1) {
-            return null;
-        }
+        statusLabel.setText(String.format("%d %s  •  %d ms  •  %s", statusCode, category, timeMs, sizeStr));
 
-        int numberStart = prefixIndex + prefix.length();
-        int numberEnd = rawResponse.indexOf('\n', numberStart);
-        String numberText = numberEnd == -1
-            ? rawResponse.substring(numberStart)
-            : rawResponse.substring(numberStart, numberEnd);
-
-        String trimmed = numberText.trim();
-        if (trimmed.isEmpty()) {
-            return null;
-        }
-
-        try {
-            return Integer.parseInt(trimmed);
-        } catch (NumberFormatException ignored) {
-            return null;
-        }
-    }
-
-    private void updateStatusLabel(Integer statusCode) {
-        if (statusCode == null) {
-            statusLabel.setText("Success");
-            statusLabel.setTextFill(Color.web("#4ADE80"));
-            return;
-        }
-
-        statusLabel.setText("Status: " + statusCode);
         if (statusCode >= 200 && statusCode < 300) {
             statusLabel.setTextFill(Color.web("#4ADE80"));
         } else if (statusCode >= 400) {
@@ -443,7 +573,7 @@ public class MainWindow extends Application {
     private void openSettingsWindow() {
         Stage settingsStage = new Stage();
         settingsStage.setTitle("Environment Configuration");
-        settingsStage.getIcons().add(new Image(getClass().getResourceAsStream("/icons/intend-icon.png")));
+        settingsStage.getIcons().add(new Image(getClass().getResourceAsStream("/icons/image.png")));
 
         ConfigRepository.ConfigData current = intendService.getConfigRepository().get();
 
@@ -486,6 +616,189 @@ public class MainWindow extends Application {
         settingsScene.getStylesheets().add(getClass().getResource("/styles/intend-theme.css").toExternalForm());
         settingsStage.setScene(settingsScene);
         settingsStage.show();
+    }
+
+    // ── Save & Share ─────────────────────────────────────────
+
+    private void showSaveDialog() {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Save Request");
+        dialog.setHeaderText(null);
+        dialog.setContentText("Request name:");
+        dialog.setGraphic(null);
+
+        DialogPane pane = dialog.getDialogPane();
+        pane.getStylesheets().add(getClass().getResource("/styles/intend-theme.css").toExternalForm());
+        pane.setStyle("-fx-background-color: #1E1E1E;");
+        pane.lookup(".content").setStyle("-fx-background-color: #1E1E1E;");
+
+        pane.lookupAll(".button").forEach(node ->
+            node.setStyle("-fx-background-color: #252525; -fx-text-fill: #E6E6E6; "
+                + "-fx-border-color: #3A3A3A; -fx-border-radius: 6; -fx-background-radius: 6; "
+                + "-fx-min-height: 32; -fx-padding: 6 16; -fx-cursor: hand;")
+        );
+        pane.lookupAll(".button-bar").forEach(node ->
+            node.setStyle("-fx-background-color: #1E1E1E;")
+        );
+
+        dialog.showAndWait().ifPresent(name -> {
+            if (!name.isBlank()) {
+                SavedRequestRepository.SavedRequest saved = new SavedRequestRepository.SavedRequest(
+                    name.trim(),
+                    methodBox.getValue(),
+                    urlField.getText(),
+                    requestBody.getText(),
+                    authBox.getValue().name(),
+                    envBox.getValue(),
+                    buildCurrentParams()
+                );
+                intendService.getSavedRequests().save(saved);
+                refreshSavedRequests();
+                statusLabel.setText("Saved: " + name.trim());
+                statusLabel.setTextFill(Color.web("#4ADE80"));
+            }
+        });
+    }
+
+    private void shareCurrentRequest() {
+        SavedRequestRepository.SavedRequest temp = new SavedRequestRepository.SavedRequest(
+            "Shared Request",
+            methodBox.getValue(),
+            urlField.getText(),
+            requestBody.getText(),
+            authBox.getValue().name(),
+            envBox.getValue(),
+            buildCurrentParams()
+        );
+        String json = intendService.getSavedRequests().toJson(temp);
+        ClipboardContent content = new ClipboardContent();
+        content.putString(json);
+        Clipboard.getSystemClipboard().setContent(content);
+        statusLabel.setText("Request copied to clipboard");
+        statusLabel.setTextFill(Color.web("#4ADE80"));
+    }
+
+    private void loadSavedRequest(SavedRequestRepository.SavedRequest saved) {
+        methodBox.setValue(saved.method());
+        urlField.setText(saved.url());
+        requestBody.setText(saved.body() != null ? saved.body() : "");
+        try {
+            authBox.setValue(RequestIntent.AuthStrategy.valueOf(saved.auth()));
+        } catch (Exception ignored) {
+            authBox.setValue(RequestIntent.AuthStrategy.NONE);
+        }
+        if (saved.env() != null) {
+            envBox.setValue(saved.env().toUpperCase());
+        }
+        // Load query params into the params table
+        paramRows.clear();
+        if (saved.params() != null && !saved.params().isEmpty()) {
+            // Find the paramsTable VBox inside paramsPane
+            VBox paramsTable = (VBox) paramsPane.getChildren().get(1);
+            paramsTable.getChildren().clear();
+            for (Map.Entry<String, String> entry : saved.params().entrySet()) {
+                addParamRow(paramsTable);
+                ParamRow lastRow = paramRows.get(paramRows.size() - 1);
+                lastRow.key().setText(entry.getKey());
+                lastRow.value().setText(entry.getValue());
+            }
+        }
+    }
+
+    private void refreshSavedRequests() {
+        savedList.getItems().setAll(intendService.getSavedRequests().getAll());
+    }
+
+    private Map<String, String> buildCurrentParams() {
+        Map<String, String> params = new LinkedHashMap<>();
+        for (ParamRow row : paramRows) {
+            if (row.enabled().isSelected()) {
+                String key = row.key().getText();
+                String value = row.value().getText();
+                if (key != null && !key.isBlank()) {
+                    params.put(key.trim(), value != null ? value.trim() : "");
+                }
+            }
+        }
+        return params;
+    }
+
+    // ── Query Params ──────────────────────────────────────────
+
+    private HBox buildParamsHeader() {
+        Label keyHeader = new Label("Key");
+        keyHeader.setStyle("-fx-text-fill: #808080; -fx-font-size: 11px; -fx-font-weight: 600;");
+        keyHeader.setMinWidth(28);
+        HBox.setHgrow(keyHeader, Priority.ALWAYS);
+
+        Label valueHeader = new Label("Value");
+        valueHeader.setStyle("-fx-text-fill: #808080; -fx-font-size: 11px; -fx-font-weight: 600;");
+        HBox.setHgrow(valueHeader, Priority.ALWAYS);
+
+        Region spacer = new Region();
+        spacer.setMinWidth(46);
+
+        HBox header = new HBox(8, spacer, keyHeader, valueHeader);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.setPadding(new Insets(0, 0, 2, 0));
+        return header;
+    }
+
+    private void addParamRow(VBox paramsTable) {
+        CheckBox enabled = new CheckBox();
+        enabled.setSelected(true);
+
+        TextField keyField = new TextField();
+        keyField.setPromptText("Key");
+        keyField.setStyle("-fx-font-size: 13px;");
+        HBox.setHgrow(keyField, Priority.ALWAYS);
+
+        TextField valueField = new TextField();
+        valueField.setPromptText("Value");
+        valueField.setStyle("-fx-font-size: 13px;");
+        HBox.setHgrow(valueField, Priority.ALWAYS);
+
+        Button removeBtn = new Button("✕");
+        removeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #606060; -fx-font-size: 12px; -fx-cursor: hand; -fx-padding: 4 8; -fx-min-width: 28;");
+        removeBtn.setOnMouseEntered(e -> removeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #FF3B3B; -fx-font-size: 12px; -fx-cursor: hand; -fx-padding: 4 8; -fx-min-width: 28;"));
+        removeBtn.setOnMouseExited(e -> removeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #606060; -fx-font-size: 12px; -fx-cursor: hand; -fx-padding: 4 8; -fx-min-width: 28;"));
+
+        ParamRow row = new ParamRow(enabled, keyField, valueField);
+        paramRows.add(row);
+
+        HBox rowBox = new HBox(8, enabled, keyField, valueField, removeBtn);
+        rowBox.setAlignment(Pos.CENTER_LEFT);
+
+        removeBtn.setOnAction(e -> {
+            if (paramRows.size() > 1) {
+                paramRows.remove(row);
+                paramsTable.getChildren().remove(rowBox);
+            }
+        });
+
+        paramsTable.getChildren().add(rowBox);
+    }
+
+    private String appendQueryParams(String baseUrl) {
+        StringBuilder query = new StringBuilder();
+        for (ParamRow row : paramRows) {
+            if (row.enabled().isSelected()) {
+                String key = row.key().getText();
+                String value = row.value().getText();
+                if (key != null && !key.isBlank()) {
+                    if (!query.isEmpty()) {
+                        query.append('&');
+                    }
+                    query.append(URLEncoder.encode(key.trim(), StandardCharsets.UTF_8));
+                    query.append('=');
+                    query.append(URLEncoder.encode(value != null ? value.trim() : "", StandardCharsets.UTF_8));
+                }
+            }
+        }
+        if (query.isEmpty()) {
+            return baseUrl;
+        }
+        return baseUrl + (baseUrl.contains("?") ? "&" : "?") + query;
     }
 
     @Override
