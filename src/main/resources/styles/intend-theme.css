@@ -264,13 +264,17 @@
 }
 
 .list-view .list-cell:filled:hover {
-    -fx-background-color: #1E1E1E;
+    -fx-background-color: #252525;
 }
 
 .list-view .list-cell:filled:selected {
-    -fx-background-color: #1E1212;
+    -fx-background-color: #2A2A2A;
     -fx-border-color: #FF3B3B transparent transparent transparent;
     -fx-border-width: 0 0 0 3;
+}
+
+.list-view .list-cell:filled:selected:hover {
+    -fx-background-color: #303030;
 }
 
 /* ---- HTTP method labels ------------------------------------ */
