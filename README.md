@@ -691,5 +691,5 @@ src/main/java/com/intend/
 
 <p align="center">
   <strong>Built with intent.</strong><br/>
-  <sub>Copyright 2024 Intend. All rights reserved.</sub>
+  <sub>Copyright 2026 Intend. All rights reserved.</sub>
 </p>
