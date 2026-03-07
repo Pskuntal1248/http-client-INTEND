@@ -30,7 +30,7 @@ public class HistoryRepository {
     }
 
     public void add(String method, String url, String body) {
-        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm:ss"));
         cache.add(0, new HistoryItem(method, url, body, time));
         save();
     }
@@ -41,6 +41,11 @@ public class HistoryRepository {
 
     public void delete(HistoryItem item) {
         cache.remove(item);
+        save();
+    }
+
+    public void clearAll() {
+        cache.clear();
         save();
     }
 
