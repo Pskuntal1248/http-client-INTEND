@@ -134,20 +134,34 @@ public class MainWindow extends Application {
         historyList.setContextMenu(contextMenu);
 
         ImageView logoView = new ImageView(new Image(getClass().getResourceAsStream("/icons/image.png")));
-        logoView.setFitHeight(30);
+        logoView.setFitHeight(60);
         logoView.setPreserveRatio(true);
         HBox logoBox = new HBox(logoView);
         logoBox.setAlignment(Pos.CENTER_LEFT);
-        logoBox.setPadding(new Insets(0, 0, 4, 0));
+        logoBox.setPadding(new Insets(0, 0, 0, 0));
 
         Label historyLabel = new Label("HISTORY");
         historyLabel.setStyle("-fx-text-fill: #B3B3B3; -fx-font-size: 11px; -fx-font-weight: 600; -fx-letter-spacing: 1;");
-        historyLabel.setPadding(new Insets(8, 0, 4, 0));
+        historyLabel.setPadding(new Insets(6, 0, 6, 0));
+
+        Button clearHistoryBtn = new Button("Clear All");
+        clearHistoryBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #606060; -fx-font-size: 10px; -fx-cursor: hand; -fx-padding: 2 8;");
+        clearHistoryBtn.setOnMouseEntered(e -> clearHistoryBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #FF3B3B; -fx-font-size: 10px; -fx-cursor: hand; -fx-padding: 2 8;"));
+        clearHistoryBtn.setOnMouseExited(e -> clearHistoryBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #606060; -fx-font-size: 10px; -fx-cursor: hand; -fx-padding: 2 8;"));
+        clearHistoryBtn.setOnAction(e -> {
+            intendService.getHistory().clearAll();
+            refreshHistory();
+        });
+
+        Region historySpacer = new Region();
+        HBox.setHgrow(historySpacer, Priority.ALWAYS);
+        HBox historyHeader = new HBox(historyLabel, historySpacer, clearHistoryBtn);
+        historyHeader.setAlignment(Pos.CENTER_LEFT);
 
         // -- Saved requests list --
         Label savedLabel = new Label("SAVED");
         savedLabel.setStyle("-fx-text-fill: #B3B3B3; -fx-font-size: 11px; -fx-font-weight: 600; -fx-letter-spacing: 1;");
-        savedLabel.setPadding(new Insets(12, 0, 4, 0));
+        savedLabel.setPadding(new Insets(6, 0, 6, 0));
 
         savedList = new ListView<>();
         savedList.setPrefHeight(150);
@@ -208,7 +222,7 @@ public class MainWindow extends Application {
         savedContextMenu.getItems().addAll(shareSavedItem, deleteSavedItem);
         savedList.setContextMenu(savedContextMenu);
 
-        sidebar = new VBox(logoBox, savedLabel, savedList, historyLabel, historyList);
+        sidebar = new VBox(logoBox, savedLabel, savedList, historyHeader, historyList);
         sidebar.getStyleClass().add("sidebar");
         sidebar.setPadding(new Insets(16));
         sidebar.setSpacing(8);
@@ -239,7 +253,7 @@ public class MainWindow extends Application {
         sendBtn.setMinWidth(80);
 
         requestBody = new TextArea();
-        requestBody.setPromptText("Request body (JSON)");
+        requestBody.setPromptText("Request body");
         requestBody.setPrefHeight(100);
         requestBody.setStyle("-fx-font-family: 'Menlo', 'Consolas', monospace; -fx-font-size: 13px;");
 
@@ -298,7 +312,7 @@ public class MainWindow extends Application {
 
         // -- Tab toggle buttons --
         bodyTabBtn = new Button("Body");
-        paramsTabBtn = new Button("Params");
+        paramsTabBtn = new Button("Query  Params");
         String activeTabStyle = "-fx-background-color: transparent; -fx-text-fill: #E6E6E6; -fx-font-size: 12px; -fx-font-weight: 600; -fx-border-color: transparent transparent #FF3B3B transparent; -fx-border-width: 0 0 2 0; -fx-background-radius: 0; -fx-border-radius: 0; -fx-padding: 6 14; -fx-cursor: hand;";
         String inactiveTabStyle = "-fx-background-color: transparent; -fx-text-fill: #808080; -fx-font-size: 12px; -fx-font-weight: 500; -fx-border-color: transparent; -fx-border-width: 0 0 2 0; -fx-background-radius: 0; -fx-border-radius: 0; -fx-padding: 6 14; -fx-cursor: hand;";
 
@@ -379,7 +393,7 @@ public class MainWindow extends Application {
 
         Label responseLabel = new Label("RESPONSE");
         responseLabel.setStyle("-fx-text-fill: #B3B3B3; -fx-font-size: 11px; -fx-font-weight: 600; -fx-letter-spacing: 1;");
-        responseLabel.setPadding(new Insets(8, 0, 4, 0));
+        responseLabel.setPadding(new Insets(6, 0, 4, 0));
 
         VBox requestSection = new VBox(8, requestLabel, tabBar, contentStack, captureSection);
         requestSection.getStyleClass().add("request-section");
@@ -726,12 +740,12 @@ public class MainWindow extends Application {
     // ── Query Params ──────────────────────────────────────────
 
     private HBox buildParamsHeader() {
-        Label keyHeader = new Label("Key");
+        Label keyHeader = new Label("");
         keyHeader.setStyle("-fx-text-fill: #808080; -fx-font-size: 11px; -fx-font-weight: 600;");
         keyHeader.setMinWidth(28);
         HBox.setHgrow(keyHeader, Priority.ALWAYS);
 
-        Label valueHeader = new Label("Value");
+        Label valueHeader = new Label(" ");
         valueHeader.setStyle("-fx-text-fill: #808080; -fx-font-size: 11px; -fx-font-weight: 600;");
         HBox.setHgrow(valueHeader, Priority.ALWAYS);
 
