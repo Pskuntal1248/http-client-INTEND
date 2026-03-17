@@ -350,6 +350,42 @@ public class MainWindow extends Application {
         responseArea.setStyle("-fx-font-family: 'Menlo', 'Consolas', monospace; -fx-font-size: 13px;");
         VBox.setVgrow(responseArea, Priority.ALWAYS);
 
+        TextArea headersArea = new TextArea();
+        headersArea.setEditable(false);
+        headersArea.setStyle("-fx-font-family: 'Menlo', 'Consolas', monospace; -fx-font-size: 13px;");
+        headersArea.setPromptText("Send a request to see resolved headers");
+        VBox.setVgrow(headersArea, Priority.ALWAYS);
+
+        StackPane responseStack = new StackPane(responseArea, headersArea);
+        responseStack.setAlignment(Pos.TOP_LEFT);
+        VBox.setVgrow(responseStack, Priority.ALWAYS);
+        headersArea.setVisible(false);
+        headersArea.setManaged(false);
+
+        Button respBodyTabBtn = new Button("Body");
+        Button respHeadersTabBtn = new Button("Headers");
+        String respActiveTab = "-fx-background-color: transparent; -fx-text-fill: #E6E6E6; -fx-font-size: 12px; -fx-font-weight: 600; -fx-border-color: transparent transparent #FF3B3B transparent; -fx-border-width: 0 0 2 0; -fx-background-radius: 0; -fx-border-radius: 0; -fx-padding: 6 14; -fx-cursor: hand;";
+        String respInactiveTab = "-fx-background-color: transparent; -fx-text-fill: #808080; -fx-font-size: 12px; -fx-font-weight: 500; -fx-border-color: transparent; -fx-border-width: 0 0 2 0; -fx-background-radius: 0; -fx-border-radius: 0; -fx-padding: 6 14; -fx-cursor: hand;";
+        respBodyTabBtn.setStyle(respActiveTab);
+        respHeadersTabBtn.setStyle(respInactiveTab);
+
+        respBodyTabBtn.setOnAction(e -> {
+            responseArea.setVisible(true); responseArea.setManaged(true);
+            headersArea.setVisible(false); headersArea.setManaged(false);
+            respBodyTabBtn.setStyle(respActiveTab);
+            respHeadersTabBtn.setStyle(respInactiveTab);
+        });
+        respHeadersTabBtn.setOnAction(e -> {
+            responseArea.setVisible(false); responseArea.setManaged(false);
+            headersArea.setVisible(true); headersArea.setManaged(true);
+            respHeadersTabBtn.setStyle(respActiveTab);
+            respBodyTabBtn.setStyle(respInactiveTab);
+        });
+
+        HBox respTabBar = new HBox(0, respBodyTabBtn, respHeadersTabBtn);
+        respTabBar.setAlignment(Pos.CENTER_LEFT);
+        respTabBar.setPadding(new Insets(0, 0, 4, 0));
+
         statusLabel = new Label("Ready");
         statusLabel.setStyle("-fx-text-fill: #808080; -fx-font-size: 13px;");
 
@@ -399,11 +435,31 @@ public class MainWindow extends Application {
         requestSection.getStyleClass().add("request-section");
         requestSection.setPadding(new Insets(12));
 
-        VBox responseSection = new VBox(8, responseLabel, responseArea, statusLabel);
+        Button expandBtn = new Button("⤢");
+        expandBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #808080; -fx-font-size: 14px; -fx-cursor: hand; -fx-padding: 2 8;");
+        expandBtn.setTooltip(new Tooltip("Expand / Collapse Response"));
+        expandBtn.setOnAction(e -> {
+            if (requestSection.isVisible()) {
+                requestSection.setVisible(false);
+                requestSection.setManaged(false);
+                expandBtn.setText("⤡");
+            } else {
+                requestSection.setVisible(true);
+                requestSection.setManaged(true);
+                expandBtn.setText("⤢");
+            }
+        });
+
+        Region respSpacer = new Region();
+        HBox.setHgrow(respSpacer, Priority.ALWAYS);
+        HBox responseHeader = new HBox(responseLabel, respSpacer, expandBtn);
+        responseHeader.setAlignment(Pos.CENTER_LEFT);
+
+        VBox responseSection = new VBox(8, responseHeader, respTabBar, responseStack, statusLabel);
         responseSection.getStyleClass().add("response-section");
         responseSection.setPadding(new Insets(12));
         VBox.setVgrow(responseSection, Priority.ALWAYS);
-        VBox.setVgrow(responseArea, Priority.ALWAYS);
+        VBox.setVgrow(responseStack, Priority.ALWAYS);
 
         VBox mainContent = new VBox(12, topBar, requestSection, responseSection);
         mainContent.setPadding(new Insets(16));
@@ -415,6 +471,8 @@ public class MainWindow extends Application {
 
         sendBtn.setOnAction(e -> {
             sendBtn.setDisable(true);
+            responseArea.clear();
+            headersArea.clear();
             statusLabel.setText("Sending...");
             statusLabel.setTextFill(Color.web("#808080"));
 
@@ -448,7 +506,16 @@ public class MainWindow extends Application {
                     // Pretty-print the body if it's JSON
                     String prettyBody = prettyPrint(result.body());
 
+                    StringBuilder headerDisplay = new StringBuilder();
+                    if (result.requestHeaders() != null && !result.requestHeaders().isEmpty()) {
+                        result.requestHeaders().entrySet().stream()
+                            .sorted(Map.Entry.comparingByKey())
+                            .forEach(entry -> headerDisplay.append(entry.getKey())
+                                .append(": ").append(entry.getValue()).append("\n"));
+                    }
+
                     Platform.runLater(() -> {
+                        headersArea.setText(headerDisplay.toString());
                         if (result.statusCode() > 0) {
                             // Build rich display: status category + time + size + body
                             StringBuilder display = new StringBuilder();
@@ -498,16 +565,52 @@ public class MainWindow extends Application {
 
     private String prettyPrint(String text) {
         if (text == null) return "";
+        String trimmed = text.trim();
+
+        // JSON
         try {
-            if (text.contains("{")) {
-                int start = text.indexOf("{");
-                Object obj = mapper.readValue(text.substring(start), Object.class);
+            if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+                Object obj = mapper.readValue(trimmed, Object.class);
                 return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
             }
-        } catch (Exception ignored) {
-            return text;
+        } catch (Exception ignored) {}
+
+        // HTML / XML — insert newlines and indent tags
+        if (trimmed.startsWith("<!") || trimmed.startsWith("<html") || trimmed.startsWith("<?xml")) {
+            return prettyPrintMarkup(trimmed);
         }
+
         return text;
+    }
+
+    private String prettyPrintMarkup(String markup) {
+        // Insert newline before every opening/closing tag
+        String spaced = markup
+                .replaceAll(">\\s*<", ">\n<")
+                .replaceAll("(<[^/!][^>]*>)", "\n$1")
+                .replaceAll("(</[^>]+>)", "$1\n");
+
+        StringBuilder out = new StringBuilder();
+        int indent = 0;
+        for (String line : spaced.split("\n")) {
+            String trimLine = line.trim();
+            if (trimLine.isEmpty()) continue;
+
+            // Decrease indent for closing tags
+            if (trimLine.startsWith("</")) {
+                indent = Math.max(0, indent - 1);
+            }
+
+            out.append("  ".repeat(indent)).append(trimLine).append("\n");
+
+            // Increase indent for opening tags (skip self-closing & void tags)
+            if (trimLine.matches("<[a-zA-Z][^>]*[^/]>") && !trimLine.startsWith("</")
+                    && !trimLine.startsWith("<!") && !trimLine.startsWith("<?")
+                    && !trimLine.matches("<(meta|link|br|hr|img|input)[\\s>].*")) {
+                indent++;
+            }
+        }
+        return out.toString().trim();
     }
 
     private void updateStatusLabel(int statusCode, String category, long timeMs, long sizeBytes) {
