@@ -1,26 +1,36 @@
 package com.intend.execution;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Map;
+
 /**
  * Rich result returned by {@link RequestExecutor#execute}.
- * Carries status code, body, timing, size, and a human-readable status category.
+ * Carries status code, body, timing, size, a human-readable status category,
+ * and the resolved request headers that were actually sent.
  */
 public record ExecutionResult(
         int statusCode,
         String body,
         long timeMs,
         long sizeBytes,
-        String statusCategory
+        String statusCategory,
+        Map<String, String> requestHeaders
 ) {
 
-    
-
     public static ExecutionResult success(int statusCode, String body, long timeMs) {
-        long size = body != null ? body.getBytes(java.nio.charset.StandardCharsets.UTF_8).length : 0;
-        return new ExecutionResult(statusCode, body, timeMs, size, categorise(statusCode));
+        long size = body != null ? body.getBytes(StandardCharsets.UTF_8).length : 0;
+        return new ExecutionResult(statusCode, body, timeMs, size, categorise(statusCode), Collections.emptyMap());
+    }
+
+    public static ExecutionResult success(int statusCode, String body, long timeMs, Map<String, String> requestHeaders) {
+        long size = body != null ? body.getBytes(StandardCharsets.UTF_8).length : 0;
+        return new ExecutionResult(statusCode, body, timeMs, size, categorise(statusCode),
+                requestHeaders != null ? requestHeaders : Collections.emptyMap());
     }
 
     public static ExecutionResult error(String message) {
-        return new ExecutionResult(0, message, 0, 0, "Error");
+        return new ExecutionResult(0, message, 0, 0, "Error", Collections.emptyMap());
     }
 
 
