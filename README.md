@@ -55,7 +55,8 @@ Select `POST`, choose `Bearer Token` from a dropdown, type your URL, write your 
 
 - Headers resolved from your intent automatically
 - Auth strategy selected from a dropdown — once
-- Built-in idempotency keys for POST/PUT/PATCH
+- Stripe-style idempotency with automatic retry
+- Browser-like headers bypass Cloudflare/WAFs
 - Content-Type auto-detected from payload shape
 - Template variables and response chaining built in
 - Native JavaFX — no browser, no account, fully offline
@@ -70,7 +71,9 @@ Select `POST`, choose `Bearer Token` from a dropdown, type your URL, write your 
 |---|---|---|---|---|
 | Zero-header requests | — | — | — | **Yes** |
 | Auto Content-Type detection | — | — | — | **Yes** |
-| Built-in idempotency keys | — | — | — | **Yes** |
+| Stripe-style idempotency + auto-retry | — | — | — | **Yes** |
+| Browser-like headers (bypass WAFs) | — | — | — | **Yes** |
+| Response decompression (gzip/deflate) | — | — | — | **Yes** |
 | Pluggable auth (SPI) | Collection-level | Collection-level | Basic | **Per-request SPI** |
 | Response variable capture | Scripts required | Plugin | Limited | **One-click checkbox** |
 | Template engine (`{{uuid}}`, `{{timestamp}}`) | `{{$guid}}` | `{{timestamp}}` | — | **Built-in** |
@@ -130,7 +133,9 @@ Intend is a single-window workspace with a history sidebar, request editor, and 
 | **Attach File** | Above request body | Select a file for multipart upload |
 | **Chain checkbox** | Below request body | Enable variable capture from the response |
 | **Capture field** | Below chain checkbox | Define capture rules (e.g. `USER_ID=/id`) |
-| **Response viewer** | Lower panel | Displays the formatted response body |
+| **Response Body/Headers tabs** | Above response viewer | Toggle between response body and resolved request headers |
+| **Response viewer** | Lower panel | Displays the formatted response body (JSON pretty-printed, HTML indented) |
+| **Expand button (⤢)** | Top-right of response | Expand response to full height / collapse back |
 | **Status bar** | Bottom of response | Shows status code, category, time, and size |
 | **History sidebar** | Left panel | Lists all previous requests — click to reload |
 | **Toggle button (◀▶)** | Top bar | Collapse or expand the history sidebar |
@@ -177,9 +182,11 @@ You never write a single header. Intend resolves them from your choices in the w
 | Select `API_KEY` from Auth dropdown | `X-API-KEY: <key>` |
 | Select `BASIC_AUTH` from Auth dropdown | `Authorization: Basic <base64>` |
 | Use `POST`, `PUT`, or `PATCH` method | `Idempotency-Key` + `X-Request-ID` added |
-| Every request | `Accept: */*` |
+| Every request | `User-Agent`, `Accept`, `Accept-Language`, `Accept-Encoding`, `Sec-Ch-Ua`, `Sec-Fetch-*`, `Origin`, `Referer` |
 
-All of this happens behind the scenes. The request body area is purely for your data.
+All headers are **dynamically resolved** — `User-Agent` matches your actual OS with a randomized Chrome version, `Sec-Ch-Ua` and `Sec-Ch-Ua-Platform` stay consistent with it, and `Origin`/`Referer` are derived from the target URL. This makes requests look like a real browser to Cloudflare and similar WAFs.
+
+You can inspect every resolved header in the **Headers tab** of the response section after each request.
 
 ---
 
@@ -198,18 +205,23 @@ To configure credentials, click the **⚙ Settings** button and enter your keys 
 
 ---
 
-### 3. Automatic idempotency protection
+### 3. Automatic idempotency protection (Stripe-style)
 
 Every `POST`, `PUT`, and `PATCH` request automatically gets:
 
 - **Idempotency-Key** — prevents duplicate processing on the server
 - **X-Request-ID** — correlates the request across distributed systems
 
-**How it works in the GUI:**
+**How it works (Stripe-style):**
 
-1. Send a `POST` to `https://api.example.com/payments` → Intend generates a new key
-2. Send the same `POST` to the same URL again → Intend **reuses** the previous key (safe retry)
-3. The server sees the same idempotency key and returns the original response instead of processing twice
+1. Send a `POST` to `https://api.example.com/payments` → Intend generates a **fresh UUID** as the idempotency key
+2. Click SEND again → a **new key** is generated (every manual send is treated as a new intent)
+3. If the request fails due to a timeout, connection error, or 502/503/504 → Intend **automatically retries** up to 2 times **with the same idempotency key**, so the server won't double-process
+4. Retries use exponential backoff (1s, 2s) and log the reused key
+
+This is how Stripe, PayPal, and other production APIs expect clients to behave:
+- **Fresh key per new intent** — no stale cached responses
+- **Same key for automatic retries** — safe duplicate protection when it matters
 
 No other API workspace does this out of the box. No configuration needed — it just works.
 
@@ -456,7 +468,7 @@ flowchart TB
     IS -->|"intent + headers"| RE
     RE -->|"ExecutionResult"| IS
     IS -->|"result"| MW
-    IP -->|"key lookup/save"| SR
+    IP -->|"fresh UUID per request"| IS
     AK -->|"read config"| CR
     BA -->|"read config"| CR
     BT -->|"read config"| CR
@@ -505,11 +517,9 @@ sequenceDiagram
 
     IS->>HE: execute(ResolutionContext)
     HE->>P: ProtocolProvider.resolve()
-    P-->>HE: Content-Type, Accept
+    P-->>HE: User-Agent, Accept, Sec-Ch-Ua, Sec-Fetch-*, Origin, Referer, Content-Type
     HE->>P: IdempotencyProvider.resolve()
-    P->>R: lookup/save idempotency key
-    R-->>P: key
-    P-->>HE: Idempotency-Key, X-Request-ID
+    P-->>HE: Idempotency-Key (fresh UUID), X-Request-ID
     HE->>P: AuthProvider.resolve()
     P->>R: read credentials from config
     R-->>P: token/key
@@ -517,7 +527,8 @@ sequenceDiagram
     HE-->>IS: all resolved headers
 
     IS->>EX: execute(intent, headers)
-    EX-->>IS: ExecutionResult (status, body, time, size)
+    EX-->>EX: auto-retry on timeout/502/503/504 (same Idempotency-Key)
+    EX-->>IS: ExecutionResult (status, body, time, size, resolved headers)
 
     IS->>R: captureVariables(response, captures)
 
@@ -544,11 +555,12 @@ flowchart LR
     end
 
     subgraph HEADERS["Resolved Headers"]
-        h1["Accept: */*"]
-        h2["Content-Type: application/json"]
-        h3["Idempotency-Key: 550e8400..."]
-        h4["X-Request-ID: 550e8400..."]
-        h5["Authorization: Bearer eyJ..."]
+        h1["User-Agent: Mozilla/5.0 (dynamic OS + Chrome ver)"]
+        h2["Accept / Accept-Language / Accept-Encoding"]
+        h3["Sec-Ch-Ua / Sec-Fetch-* / Origin / Referer"]
+        h4["Content-Type: application/json"]
+        h5["Idempotency-Key: fresh UUID"]
+        h6["Authorization: Bearer eyJ..."]
     end
 
     method --> ENGINE
@@ -562,15 +574,15 @@ flowchart LR
 
     class method,payload,auth inputStyle
     class p1,p2,p3 engineStyle
-    class h1,h2,h3,h4,h5 headerStyle
+    class h1,h2,h3,h4,h5,h6 headerStyle
 ```
 
 ### Provider execution order
 
 | Order | Provider | What it resolves |
 |---|---|---|
-| 10 | `ProtocolProvider` | `Content-Type`, `Accept` — based on payload shape |
-| 50 | `IdempotencyProvider` | `Idempotency-Key`, `X-Request-ID` — for POST/PUT/PATCH |
+| 10 | `ProtocolProvider` | `User-Agent`, `Accept`, `Accept-Language`, `Accept-Encoding`, `Sec-Ch-Ua`, `Sec-Fetch-*`, `Origin`, `Referer`, `Content-Type` — dynamically resolved from OS, Chrome version, target URL, and payload shape |
+| 50 | `IdempotencyProvider` | `Idempotency-Key`, `X-Request-ID` — fresh UUID per request (Stripe-style) |
 | 90 | `ApiKeyProvider` | `X-API-KEY` — when API_KEY auth is selected |
 | 90 | `BasicAuthProvider` | `Authorization: Basic` — when BASIC_AUTH is selected |
 | 91 | `BearerTokenProvider` | `Authorization: Bearer` — when BEARER_TOKEN is selected |
@@ -611,14 +623,14 @@ All data is stored locally — no cloud, no account, no telemetry.
 ~/.intend/
 ├── history.json               # Every request you've sent
 ├── intend-config.json         # Dev/Prod URLs and API keys
-└── intend-state.properties    # Idempotency key memory
+└── intend-state.properties    # Application state
 ```
 
 | File | Purpose |
 |---|---|
 | `history.json` | Saved requests with method, URL, body, and timestamp |
 | `intend-config.json` | Environment base URLs and API keys |
-| `intend-state.properties` | Idempotency key cache per endpoint |
+| `intend-state.properties` | Application state |
 
 Uninstalling does **not** remove `~/.intend/`. Delete it manually to clear all stored data.
 
@@ -639,13 +651,13 @@ src/main/java/com/intend/
 │   ├── HeaderEngine.java           # SPI engine — runs providers in priority order
 │   └── TemplateEngine.java         # {{variable}} resolution engine
 ├── execution/
-│   ├── ExecutionResult.java        # Rich result: status, body, time, size
+│   ├── ExecutionResult.java        # Rich result: status, body, time, size, resolved headers
 │   ├── RequestExecutor.java        # Executor interface
 │   └── impl/
-│       └── JavaHttpClientExecutor  # HTTP/2 executor with streaming + multipart
+│       └── JavaHttpClientExecutor  # HTTP/2 executor with auto-retry, decompression, streaming + multipart
 ├── providers/
-│   ├── ProtocolProvider.java       # Auto Content-Type + Accept
-│   ├── IdempotencyProvider.java    # Idempotency-Key + X-Request-ID
+│   ├── ProtocolProvider.java       # Dynamic browser headers (UA, Sec-Ch-Ua, Sec-Fetch-*, Origin, Content-Type)
+│   ├── IdempotencyProvider.java    # Stripe-style Idempotency-Key + X-Request-ID
 │   ├── ApiKeyProvider.java         # X-API-KEY header
 │   ├── BasicAuthProvider.java      # Authorization: Basic
 │   └── BearerTokenProvider.java    # Authorization: Bearer
