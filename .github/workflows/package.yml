@@ -21,7 +21,6 @@ env:
   JAVA_VERSION: '17'
 
 jobs:
-  # ─── macOS (.dmg) ──────────────────────────────────────────
   package-mac:
     runs-on: macos-latest
     steps:
@@ -64,7 +63,6 @@ jobs:
           name: Intend-macOS-dmg
           path: dist/*.dmg
 
-  # ─── Linux (.deb + .rpm) ───────────────────────────────────
   package-linux:
     runs-on: ubuntu-latest
     steps:
