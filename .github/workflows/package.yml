@@ -1,0 +1,255 @@
+name: Package Intend
+
+on:
+  push:
+    tags:
+      - 'v*'
+  repository_dispatch:
+    types: [build-installers]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to package (e.g. 1.0.0)'
+        required: false
+        default: '1.0.0'
+
+permissions:
+  contents: write
+
+env:
+  APP_VERSION: ${{ github.event.inputs.version || github.event.client_payload.version || '1.0.0' }}
+  JAVA_VERSION: '17'
+
+jobs:
+  # ─── macOS (.dmg) ──────────────────────────────────────────
+  package-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build fat JAR
+        run: ./mvnw -B clean package -DskipTests -Djpackage.skip=true
+
+      - name: Create DMG with jpackage
+        run: |
+          jpackage \
+            --name Intend \
+            --app-version ${{ env.APP_VERSION }} \
+            --vendor "Intend" \
+            --description "Intent-based HTTP client with GUI and CLI" \
+            --copyright "Copyright 2026 Intend" \
+            --icon image.icns \
+            --input target/jpackage-input \
+            --main-jar intend-1.0.0-SNAPSHOT.jar \
+            --main-class org.springframework.boot.loader.launch.JarLauncher \
+            --dest dist \
+            --type dmg \
+            --mac-package-identifier com.intend.app \
+            --mac-package-name Intend \
+            --java-options "--add-opens=java.base/java.lang=ALL-UNNAMED" \
+            --java-options "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED" \
+            --java-options "--add-opens=java.base/java.io=ALL-UNNAMED" \
+            --java-options "--enable-native-access=ALL-UNNAMED"
+
+      - name: Upload macOS DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: Intend-macOS-dmg
+          path: dist/*.dmg
+
+  # ─── Linux (.deb + .rpm) ───────────────────────────────────
+  package-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Install packaging tools
+        run: sudo apt-get update && sudo apt-get install -y fakeroot rpm
+
+      - name: Build fat JAR
+        run: ./mvnw -B clean package -DskipTests -Djpackage.skip=true
+
+      - name: Create DEB with jpackage
+        run: |
+          jpackage \
+            --name intend \
+            --app-version ${{ env.APP_VERSION }} \
+            --vendor "Intend" \
+            --description "Intent-based HTTP client with GUI and CLI" \
+            --copyright "Copyright 2026 Intend" \
+            --icon image.png \
+            --input target/jpackage-input \
+            --main-jar intend-1.0.0-SNAPSHOT.jar \
+            --main-class org.springframework.boot.loader.launch.JarLauncher \
+            --dest dist \
+            --type deb \
+            --linux-shortcut \
+            --linux-menu-group Development \
+            --linux-app-category Development \
+            --linux-deb-maintainer "intend@example.com" \
+            --java-options "--add-opens=java.base/java.lang=ALL-UNNAMED" \
+            --java-options "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED" \
+            --java-options "--add-opens=java.base/java.io=ALL-UNNAMED" \
+            --java-options "--enable-native-access=ALL-UNNAMED"
+
+      - name: Create RPM with jpackage
+        run: |
+          jpackage \
+            --name intend \
+            --app-version ${{ env.APP_VERSION }} \
+            --vendor "Intend" \
+            --description "Intent-based HTTP client with GUI and CLI" \
+            --copyright "Copyright 2026 Intend" \
+            --icon image.png \
+            --input target/jpackage-input \
+            --main-jar intend-1.0.0-SNAPSHOT.jar \
+            --main-class org.springframework.boot.loader.launch.JarLauncher \
+            --dest dist \
+            --type rpm \
+            --linux-shortcut \
+            --linux-menu-group Development \
+            --linux-app-category Development \
+            --linux-rpm-license-type Proprietary \
+            --java-options "--add-opens=java.base/java.lang=ALL-UNNAMED" \
+            --java-options "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED" \
+            --java-options "--add-opens=java.base/java.io=ALL-UNNAMED" \
+            --java-options "--enable-native-access=ALL-UNNAMED"
+
+      - name: Upload Linux Packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: Intend-Linux-packages
+          path: dist/*
+
+  # ─── Windows (.msi + .exe) ─────────────────────────────────
+  package-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build fat JAR
+        run: ./mvnw.cmd -B clean package -DskipTests "-Djpackage.skip=true"
+
+      - name: Convert PNG to ICO
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.Drawing
+          $png = [System.Drawing.Image]::FromFile("$PWD\image.png")
+          $icon = [System.Drawing.Icon]::FromHandle($png.GetHicon())
+          $stream = [System.IO.File]::Create("$PWD\image.ico")
+          $icon.Save($stream)
+          $stream.Close()
+          $icon.Dispose()
+          $png.Dispose()
+
+      - name: Create MSI with jpackage
+        shell: cmd
+        run: |
+          jpackage ^
+            --name Intend ^
+            --app-version %APP_VERSION% ^
+            --vendor "Intend" ^
+            --description "Intent-based HTTP client with GUI and CLI" ^
+            --copyright "Copyright 2026 Intend" ^
+            --icon image.ico ^
+            --input target\jpackage-input ^
+            --main-jar intend-1.0.0-SNAPSHOT.jar ^
+            --main-class org.springframework.boot.loader.launch.JarLauncher ^
+            --dest dist ^
+            --type msi ^
+            --win-menu ^
+            --win-shortcut ^
+            --win-dir-chooser ^
+            --win-per-user-install ^
+            --win-menu-group Intend ^
+            --java-options "--add-opens=java.base/java.lang=ALL-UNNAMED" ^
+            --java-options "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED" ^
+            --java-options "--add-opens=java.base/java.io=ALL-UNNAMED" ^
+            --java-options "--enable-native-access=ALL-UNNAMED"
+
+      - name: Create EXE with jpackage
+        shell: cmd
+        run: |
+          jpackage ^
+            --name Intend ^
+            --app-version %APP_VERSION% ^
+            --vendor "Intend" ^
+            --description "Intent-based HTTP client with GUI and CLI" ^
+            --copyright "Copyright 2026 Intend" ^
+            --icon image.ico ^
+            --input target\jpackage-input ^
+            --main-jar intend-1.0.0-SNAPSHOT.jar ^
+            --main-class org.springframework.boot.loader.launch.JarLauncher ^
+            --dest dist ^
+            --type exe ^
+            --win-menu ^
+            --win-shortcut ^
+            --win-dir-chooser ^
+            --win-per-user-install ^
+            --win-menu-group Intend ^
+            --java-options "--add-opens=java.base/java.lang=ALL-UNNAMED" ^
+            --java-options "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED" ^
+            --java-options "--add-opens=java.base/java.io=ALL-UNNAMED" ^
+            --java-options "--enable-native-access=ALL-UNNAMED"
+
+      - name: Upload Windows Installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: Intend-Windows-installers
+          path: dist/*
+
+  # ─── Create GitHub Release (runs for ALL triggers) ─────────
+  release:
+    needs: [package-mac, package-linux, package-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine release tag
+        id: tag
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=v${{ env.APP_VERSION }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List artifacts
+        run: find artifacts -type f
+
+      - name: Create or update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: Intend ${{ env.APP_VERSION }}
+          draft: false
+          prerelease: false
+          make_latest: true
+          files: |
+            artifacts/Intend-macOS-dmg/*
+            artifacts/Intend-Linux-packages/*
+            artifacts/Intend-Windows-installers/*
