@@ -114,7 +114,7 @@ Download the installer for your platform from [Releases](https://github.com/psku
 Intend is a single-window workspace with a history sidebar, request editor, and response viewer — all in a native dark-themed interface.
 
 <p align="center">
-  <img src="intend-workspace.png" alt="Intend API Workspace" width="900" />
+  <img src="1.png" alt="Intend API Workspace" width="900" />
 </p>
 
 ### Workspace controls
