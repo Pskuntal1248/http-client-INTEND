@@ -6,6 +6,7 @@ import com.intend.execution.ExecutionResult;
 import com.intend.execution.RequestExecutor;
 import org.springframework.stereotype.Component;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.net.ConnectException;
@@ -14,12 +15,15 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.InflaterInputStream;
 import javax.net.ssl.SSLException;
 
 @Component
@@ -30,6 +34,12 @@ public class JavaHttpClientExecutor implements RequestExecutor {
 
     /** Per-request read timeout. */
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
+
+    /** Max automatic retries on transient failures (reuses same Idempotency-Key). */
+    private static final int MAX_RETRIES = 2;
+
+    /** Delay between retries. */
+    private static final Duration RETRY_DELAY = Duration.ofSeconds(1);
 
     /** Responses larger than this threshold are streamed to a temp file. */
     private static final long STREAM_THRESHOLD_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -48,62 +58,84 @@ public class JavaHttpClientExecutor implements RequestExecutor {
 
     @Override
     public ExecutionResult execute(RequestIntent intent, Map<String, String> headers) {
-        try {
-            HttpRequest.Builder builder = HttpRequest.newBuilder()
-                    .uri(intent.url())
-                    .timeout(REQUEST_TIMEOUT);
+        Map<String, String> requestHeaders = new HashMap<>(headers);
+        Exception lastException = null;
 
-            Map<String, String> requestHeaders = new HashMap<>(headers);
-            HttpRequest.BodyPublisher bodyPublisher = resolveBodyPublisher(intent, builder, requestHeaders);
-
-            requestHeaders.forEach((key, value) -> {
-                if (!"Content-Type".equalsIgnoreCase(key)) {
-                    builder.header(key, value);
+        for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                if (attempt > 0) {
+                    System.out.println("⟳ Retry " + attempt + "/" + MAX_RETRIES
+                            + " (same Idempotency-Key: " + requestHeaders.get("Idempotency-Key") + ")");
+                    Thread.sleep(RETRY_DELAY.toMillis() * attempt);
                 }
-            });
 
-            builder.method(intent.method().name(), bodyPublisher);
+                HttpRequest.Builder builder = HttpRequest.newBuilder()
+                        .uri(intent.url())
+                        .timeout(REQUEST_TIMEOUT);
 
-            System.out.println("Sending " + intent.method() + " to " + intent.url() + "...");
+                HttpRequest.BodyPublisher bodyPublisher = resolveBodyPublisher(intent, builder, requestHeaders);
 
-            long start = System.nanoTime();
-            HttpResponse<String> response = client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
-            long timeMs = (System.nanoTime() - start) / 1_000_000;
+                requestHeaders.forEach((key, value) -> {
+                    if (!"Content-Type".equalsIgnoreCase(key)) {
+                        builder.header(key, value);
+                    }
+                });
 
-            // If the response is very large, warn but still return it
-            String body = response.body();
-            long sizeBytes = body != null
-                    ? body.getBytes(java.nio.charset.StandardCharsets.UTF_8).length
-                    : 0;
+                builder.method(intent.method().name(), bodyPublisher);
 
-            if (sizeBytes > STREAM_THRESHOLD_BYTES) {
-                System.out.println("⚠ Large response (" + (sizeBytes / (1024 * 1024)) + " MB) — consider streaming mode.");
+                System.out.println("Sending " + intent.method() + " to " + intent.url() + "...");
+
+                long start = System.nanoTime();
+                HttpResponse<InputStream> response = client.send(builder.build(), HttpResponse.BodyHandlers.ofInputStream());
+                long timeMs = (System.nanoTime() - start) / 1_000_000;
+
+                String body = decodeResponseBody(response);
+                long sizeBytes = body != null
+                        ? body.getBytes(StandardCharsets.UTF_8).length
+                        : 0;
+
+                int status = response.statusCode();
+
+                // Retry on 502/503/504 (server transient errors)
+                if (isRetryableStatus(status) && attempt < MAX_RETRIES) {
+                    System.out.println("⚠ Server returned " + status + " — will retry with same Idempotency-Key.");
+                    continue;
+                }
+
+                if (sizeBytes > STREAM_THRESHOLD_BYTES) {
+                    System.out.println("⚠ Large response (" + (sizeBytes / (1024 * 1024)) + " MB) — consider streaming mode.");
+                }
+
+                return ExecutionResult.success(status, body, timeMs, requestHeaders);
+
+            } catch (HttpTimeoutException | ConnectException e) {
+                lastException = e;
+                // Transient — retry with same idempotency key
+            } catch (UnknownHostException e) {
+                return ExecutionResult.error("Unknown host: " + intent.url().getHost());
+            } catch (SSLException e) {
+                return ExecutionResult.error("SSL/TLS error: " + e.getMessage());
+            } catch (IllegalArgumentException e) {
+                return ExecutionResult.error("Invalid URL: " + e.getMessage());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return ExecutionResult.error("Request interrupted.");
+            } catch (Exception e) {
+                return ExecutionResult.error("Network error: " + e.getMessage());
             }
-
-            return ExecutionResult.success(response.statusCode(), body, timeMs);
-
-        } catch (HttpTimeoutException e) {
-            return ExecutionResult.error("Request timed out after " + REQUEST_TIMEOUT.toSeconds() + "s.");
-
-        } catch (ConnectException e) {
-            return ExecutionResult.error("Connection refused — is the server running? (" + intent.url().getHost() + ")");
-
-        } catch (UnknownHostException e) {
-            return ExecutionResult.error("Unknown host: " + intent.url().getHost());
-
-        } catch (SSLException e) {
-            return ExecutionResult.error("SSL/TLS error: " + e.getMessage());
-
-        } catch (IllegalArgumentException e) {
-            return ExecutionResult.error("Invalid URL: " + e.getMessage());
-
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return ExecutionResult.error("Request interrupted.");
-
-        } catch (Exception e) {
-            return ExecutionResult.error("Network error: " + e.getMessage());
         }
+
+        // All retries exhausted
+        if (lastException instanceof HttpTimeoutException) {
+            return ExecutionResult.error("Request timed out after " + (MAX_RETRIES + 1)
+                    + " attempts (" + REQUEST_TIMEOUT.toSeconds() + "s each).");
+        }
+        return ExecutionResult.error("Connection failed after " + (MAX_RETRIES + 1)
+                + " attempts — is the server running? (" + intent.url().getHost() + ")");
+    }
+
+    private boolean isRetryableStatus(int status) {
+        return status == 502 || status == 503 || status == 504;
     }
 
     // ── Streaming download ─────────────────────────────────────
@@ -144,7 +176,8 @@ public class JavaHttpClientExecutor implements RequestExecutor {
                     "Saved to " + destination + " (" + sizeBytes + " bytes)",
                     timeMs,
                     sizeBytes,
-                    sizeBytes > 0 ? "Success" : "Empty"
+                    sizeBytes > 0 ? "Success" : "Empty",
+                    requestHeaders
             );
 
         } catch (HttpTimeoutException e) {
@@ -191,5 +224,35 @@ public class JavaHttpClientExecutor implements RequestExecutor {
         return intent.payload() == null
             ? HttpRequest.BodyPublishers.noBody()
             : HttpRequest.BodyPublishers.ofString(intent.payload().toString());
+    }
+
+    // ── Response decompression ─────────────────────────────────
+
+    private String decodeResponseBody(HttpResponse<InputStream> response) throws Exception {
+        String encoding = response.headers()
+                .firstValue("Content-Encoding")
+                .orElse("")
+                .toLowerCase();
+
+        try (InputStream raw = response.body();
+             InputStream decoded = switch (encoding) {
+                 case "gzip"    -> new GZIPInputStream(raw);
+                 case "deflate" -> new InflaterInputStream(raw);
+                 case "br"      -> brotliStream(raw);
+                 default        -> raw;
+             }) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            decoded.transferTo(out);
+            return out.toString(StandardCharsets.UTF_8);
+        }
+    }
+
+    private InputStream brotliStream(InputStream raw) throws Exception {
+        try {
+            Class<?> clazz = Class.forName("org.brotli.dec.BrotliInputStream");
+            return (InputStream) clazz.getConstructor(InputStream.class).newInstance(raw);
+        } catch (ClassNotFoundException e) {
+            return raw;
+        }
     }
 }
