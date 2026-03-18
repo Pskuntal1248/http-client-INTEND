@@ -22,7 +22,7 @@ class EnvContextRepositoryTest {
     void setUp() {
         configRepo = new ConfigRepository();
         // Set known config values
-        configRepo.save("http://localhost:3000", "dev-key-123", "https://prod.api.com", "prod-key-456");
+        configRepo.save("http://localhost:3000", "dev-key-123", "", "", "", "https://prod.api.com", "prod-key-456", "", "", "");
         contextRepo = new EnvContextRepository(configRepo);
     }
 
