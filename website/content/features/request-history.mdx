@@ -1,0 +1,77 @@
+# Request History
+
+<Callout type="info">
+Every sent request is persisted and instantly replayable from the sidebar.
+</Callout>
+
+## Sidebar Content
+
+Each history row includes:
+
+| Field | Meaning |
+|---|---|
+| Method badge | HTTP method with color encoding |
+| URL preview | Truncated endpoint for quick scanning |
+| Timestamp | Send time in `HH:mm:ss` format |
+
+## Method Colors
+
+| Method | Color token |
+|---|---|
+| GET | Green (`#4ADE80`) |
+| POST | Blue (`#60A5FA`) |
+| PUT | Yellow (`#FBBF24`) |
+| DELETE | Red (`#FF3B3B`) |
+| PATCH | Purple (`#C084FC`) |
+
+## Common Actions
+
+<Steps>
+### Replay request
+
+Click an entry to load method, URL, and body back into editor.
+
+### Remove request
+
+Right-click entry and select delete.
+
+### Toggle sidebar
+
+Use the header toggle control to collapse or expand history panel.
+</Steps>
+
+## Persistence Model
+
+Storage file: `~/.intend/history.json`
+
+```json
+[
+  {
+    "method": "POST",
+    "url": "https://api.example.com/users",
+    "body": "{\"name\":\"Alice\"}",
+    "timestamp": "14:30:15"
+  }
+]
+```
+
+Behavior:
+
+| Operation | Effect |
+|---|---|
+| Add new request | Prepends newest entry |
+| App startup | Loads all existing entries |
+| Delete entry | Removes and flushes file |
+
+## Repository Internals
+
+```text
+constructor -> load file into memory cache
+add()       -> prepend and flush to disk
+getAll()    -> return safe copy
+delete()    -> remove and flush
+```
+
+<Callout type="warning">
+If history grows very large, startup can slow down. Archive or trim old entries periodically.
+</Callout>

@@ -1,0 +1,106 @@
+# API Reference
+
+<Callout type="info">
+This section is for developers extending Intend internals. For user-facing behavior, start in the feature guides.
+</Callout>
+
+<div className="docs-box-grid docs-box-grid-3">
+  <a href="/docs/api-reference/architecture" className="docs-box-card">
+    <h3 className="docs-box-title">Architecture Reference</h3>
+    <div className="docs-box-text">Class model, SPI contracts, lifecycle, and threading details.</div>
+  </a>
+  <a href="/docs/features/zero-config-headers" className="docs-box-card">
+    <h3 className="docs-box-title">Header Resolution</h3>
+    <div className="docs-box-text">Provider ordering and effective header output behavior.</div>
+  </a>
+  <a href="/docs/features/idempotency" className="docs-box-card">
+    <h3 className="docs-box-title">Idempotency and Retry</h3>
+    <div className="docs-box-text">Key generation strategy and retry safety model.</div>
+  </a>
+</div>
+
+## Layered Design
+
+| Layer | Main type(s) | Responsibility |
+|---|---|---|
+| UI | `MainWindow` | Collect request intent and render results |
+| Service | `IntendServiceImpl` | Orchestrates end-to-end request workflow |
+| Resolution | `TemplateEngine`, `HeaderEngine` | Resolve placeholders and headers |
+| Execution | `JavaHttpClientExecutor` | Send HTTP over Java HttpClient with retry |
+| Persistence | repositories under `repository/` | Persist history, config, variables, key state |
+
+## Request Lifecycle (Single SEND)
+
+| Step | Component | Output |
+|---|---|---|
+| 1 | `IntendServiceImpl` | Receives `RequestIntent` |
+| 2 | `TemplateEngine` | URL/body placeholders resolved |
+| 3 | `HistoryRepository` | Request snapshot persisted |
+| 4 | `HeaderEngine` + providers | Final header map |
+| 5 | `JavaHttpClientExecutor` | HTTP response + timing |
+| 6 | Retry policy | Re-attempt on timeout/502/503/504 |
+| 7 | Variable capture | Optional response chaining writes |
+| 8 | UI binding | `ExecutionResult` rendered |
+
+## SPI Contract
+
+```java
+public interface HeaderProvider {
+    int getOrder();
+    boolean supports(ResolutionContext context);
+    HeaderResolution resolve(ResolutionContext context);
+}
+```
+
+Provider behaviors:
+
+| Method | Purpose | Guidance |
+|---|---|---|
+| `getOrder()` | Execution priority | Lower value runs first |
+| `supports()` | Gate execution | Keep fast and side-effect free |
+| `resolve()` | Produce headers | Return deterministic output for same context |
+
+## Minimal Custom Provider
+
+```java
+public final class CustomCorsProvider implements HeaderProvider {
+    @Override
+    public int getOrder() { return 20; }
+
+    @Override
+    public boolean supports(ResolutionContext context) {
+        return !context.intent().url().getHost().equals("localhost");
+    }
+
+    @Override
+    public HeaderResolution resolve(ResolutionContext context) {
+        return HeaderResolution.success(Map.of("Origin", "https://app.yourcompany.com"));
+    }
+}
+```
+
+<Callout type="warning">
+If two providers emit the same header key, the later provider in execution order wins.
+</Callout>
+
+## Project Map
+
+```text
+src/main/java/com/intend/
+|- config/        # bean wiring
+|- context/       # immutable resolution context
+|- core/          # intent and enums
+|- engine/        # template + header engines
+|- execution/     # executors and result types
+|- providers/     # built-in header providers
+|- repository/    # json/properties persistence
+|- service/       # orchestration layer
+|- spi/           # extension interfaces
+`- ui/            # JavaFX front-end
+```
+
+## Next Deep-Dive
+
+- [Architecture Reference](/docs/api-reference/architecture)
+- [Zero-Config Headers](/docs/features/zero-config-headers)
+- [Template Variables](/docs/features/template-variables)

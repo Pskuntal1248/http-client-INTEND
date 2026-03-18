@@ -1,0 +1,82 @@
+# Response Chaining
+
+<Callout type="info">
+Capture response fields and reuse them as `{{variables}}` in later requests without scripts.
+</Callout>
+
+## Workflow
+
+<Steps>
+### Enable capture
+
+Check **Chain / Extract Variable**.
+
+### Define rule
+
+Use format: `VARIABLE_NAME=/json/pointer`.
+
+### Send and reuse
+
+After send, reference with `{{VARIABLE_NAME}}` in URL or body.
+</Steps>
+
+## End-to-End Example
+
+<Tabs items={["Create + capture", "Reuse in next request"]}>
+	<Tabs.Tab>
+
+```http
+POST https://api.example.com/users
+Body: {"name": "Alice"}
+Capture: USER_ID=/id
+```
+
+Response:
+
+```json
+{"id":"abc-123","name":"Alice"}
+```
+
+Stored value: `USER_ID=abc-123`
+
+	</Tabs.Tab>
+	<Tabs.Tab>
+
+```http
+GET https://api.example.com/users/{{USER_ID}}/orders
+```
+
+Resolved URL:
+
+```text
+https://api.example.com/users/abc-123/orders
+```
+
+	</Tabs.Tab>
+</Tabs>
+
+## Capture Rule Reference
+
+| Rule | Response sample | Stored value |
+|---|---|---|
+| `USER_ID=/id` | `{"id":"abc-123"}` | `abc-123` |
+| `TOKEN=/data/token` | `{"data":{"token":"eyJ..."}}` | `eyJ...` |
+| `FIRST=/items/0/name` | `{"items":[{"name":"Alice"}]}` | `Alice` |
+
+JSON pointer syntax follows RFC 6901.
+
+## Resolution Priority
+
+| Priority | Source |
+|---|---|
+| 1 | Built-ins (`uuid`, `timestamp`, `randomInt`, `randomEmail`, `randomUser`) |
+| 2 | Captured variables from response chaining |
+| 3 | Passthrough if unresolved (`{{key}}`) |
+
+## Lifetime and Scope
+
+<Callout type="warning">
+Captured variables are session-scoped in memory and reset on app restart.
+</Callout>
+
+Related: [Template Variables](/docs/features/template-variables)

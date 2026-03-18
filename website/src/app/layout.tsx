@@ -1,0 +1,47 @@
+import type { Metadata } from "next";
+import { Inter, JetBrains_Mono } from "next/font/google";
+import "./globals.css";
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "Intend — The Intent-Driven API Workspace",
+  description:
+    "Say what you want — not how to get it. No login. No Electron bloat. Fully native JavaFX API workspace.",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" className="dark scroll-smooth" suppressHydrationWarning>
+      <head>
+        {/* Umami Analytics — privacy-friendly, no cookies */}
+        {/* To enable: sign up at https://cloud.umami.is (free tier) or self-host, */}
+        {/* then replace the data-website-id and src below and uncomment. */}
+        {/*
+        <script
+          defer
+          src="https://cloud.umami.is/script.js"
+          data-website-id="YOUR_WEBSITE_ID"
+        />
+        */}
+      </head>
+      <body
+        className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-black text-white`}
+      >
+        {children}
+      </body>
+    </html>
+  );
+}

@@ -1,0 +1,53 @@
+# File Uploads
+
+<Callout type="info">
+Attach a file and send. Intend handles multipart boundaries, body encoding, and content headers automatically.
+</Callout>
+
+## Upload Flow
+
+<Steps>
+### Attach file
+
+Use **Attach File** in request body area.
+
+### Confirm request mode
+
+Editor switches to file payload mode and method defaults to `POST`.
+
+### Send request
+
+Intend encodes multipart body and dispatches with Java HttpClient.
+</Steps>
+
+## Automatic Behavior
+
+| Stage | Intend behavior |
+|---|---|
+| Payload detection | Detects `File` payload |
+| Content-Type | Sets `multipart/form-data; boundary=...` |
+| Method normalization | Switches to `POST` if needed |
+| Body construction | Uses `MultipartUtil` publisher |
+| Transport | Sends through `java.net.http.HttpClient` |
+
+## Internal Execution Snippet
+
+```java
+if (payload instanceof File file) {
+    String boundary = MultipartUtil.generateBoundary();
+    headers.put("Content-Type", "multipart/form-data; boundary=" + boundary);
+    bodyPublisher = MultipartUtil.createPublisher(file, boundary);
+}
+```
+
+<Callout type="default">
+Boundary values are generated per request to ensure valid multipart framing.
+</Callout>
+
+## Practical Notes
+
+| Topic | Guidance |
+|---|---|
+| Clearing file mode | Click **Clear** to return to text payload mode |
+| Header conflicts | Executor overrides generic content type with multipart boundary |
+| Large response handling | Responses above 10MB can be handled via [Streaming](/docs/features/streaming) |

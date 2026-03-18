@@ -1,0 +1,45 @@
+---
+title: Changelog
+---
+
+# Changelog
+
+All notable changes to Intend are documented here.
+
+---
+
+## v2.0.0 — March 2026
+
+**Native Installers**
+- `.dmg` for macOS (Apple Silicon & Intel)
+- `.msi` and `.exe` for Windows
+- `.deb` for Debian/Ubuntu
+- `.rpm` for Fedora/RHEL
+
+**New Features**
+- Stripe-style idempotency — automatic `Idempotency-Key` and `X-Request-ID` on POST/PUT/PATCH
+- Response chaining — capture values from a response and use them as `{{variables}}`
+- File upload support with multipart/form-data
+- Request history panel with search and replay
+- Streaming response viewer for SSE and chunked transfer
+
+**Improvements**
+- Zero-config header engine — auto-detects Content-Type, sets User-Agent and browser-like headers
+- Template engine with built-ins: `{{uuid}}`, `{{timestamp}}`, `{{randomEmail}}`
+- Environment switcher (DEV / PROD) with per-environment credentials
+- Plugin architecture (SPI) — extend the header engine with custom `HeaderProvider` plugins
+
+**Infrastructure**
+- GitHub Actions CI/CD with matrix builds (macOS, Windows, Ubuntu)
+- jpackage-based native packaging
+- Spring Boot 3.2.2 + JavaFX 21.0.2
+
+---
+
+## v1.0.0 — Initial Release
+
+- Basic GET/POST/PUT/DELETE/PATCH requests
+- JSON response viewer with syntax highlighting
+- API Key, Basic Auth, and Bearer Token authentication
+- Environment variable support
+- Maven wrapper for zero-dependency builds

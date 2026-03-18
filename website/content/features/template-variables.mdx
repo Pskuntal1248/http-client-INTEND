@@ -1,0 +1,77 @@
+# Template Variables
+
+<Callout type="info">
+Template placeholders are resolved at send time, so every request gets fresh dynamic values.
+</Callout>
+
+## Built-in Generators
+
+| Placeholder | Output | Example |
+|---|---|---|
+| `{{uuid}}` | UUID v4 | `550e8400-e29b-41d4-a716-446655440000` |
+| `{{timestamp}}` | ISO-8601 instant | `2026-03-02T14:30:00Z` |
+| `{{randomInt}}` | Integer in range 0-999 | `427` |
+| `{{randomEmail}}` | Email-like string | `user_3847@example.com` |
+| `{{randomUser}}` | Username-like string | `User42` |
+
+## Usage Patterns
+
+<Tabs items={["URL", "JSON body", "Mixed with captured vars"]}>
+  <Tabs.Tab>
+
+```http
+GET https://api.example.com/users/{{uuid}}
+```
+
+  </Tabs.Tab>
+  <Tabs.Tab>
+
+```json
+{
+  "id": "{{uuid}}",
+  "email": "{{randomEmail}}",
+  "createdAt": "{{timestamp}}"
+}
+```
+
+  </Tabs.Tab>
+  <Tabs.Tab>
+
+```json
+{
+  "userId": "{{USER_ID}}",
+  "trace": "{{uuid}}"
+}
+```
+
+Captured variables and built-ins can be used together.
+
+  </Tabs.Tab>
+</Tabs>
+
+## Resolution Order
+
+| Order | Source | Behavior |
+|---|---|---|
+| 1 | Built-ins | Always generate fresh value |
+| 2 | Captured vars | Read from `VariableRepository` |
+| 3 | Passthrough | Leave unresolved as `{{key}}` |
+
+## Engine Logic (Simplified)
+
+```java
+switch (key) {
+    case "uuid"        -> UUID.randomUUID().toString();
+    case "timestamp"   -> Instant.now().toString();
+    case "randomInt"   -> String.valueOf(random.nextInt(1000));
+    case "randomEmail" -> "user_" + random.nextInt(9999) + "@example.com";
+    case "randomUser"  -> "User" + random.nextInt(100);
+    default             -> variableRepository.get(key).orElse("{{" + key + "}}");
+}
+```
+
+<Callout type="default">
+If the same placeholder appears multiple times in one request, each occurrence is resolved independently.
+</Callout>
+
+Related: [Response Chaining](/docs/features/response-chaining)

@@ -1,0 +1,150 @@
+# Architecture Reference
+
+<Callout type="info">
+Deep technical reference for Intend internals: models, SPI, execution flow, threading, and dependency wiring.
+</Callout>
+
+## Core Types
+
+### Records
+
+| Type | Responsibility |
+|---|---|
+| `RequestIntent` | Immutable user request intent |
+| `ResolutionContext` | Context object passed to providers |
+| `HeaderResolution` | Provider success/failure output |
+| `ExecutionResult` | Final execution metadata and body |
+
+### Interfaces
+
+| Type | Contract |
+|---|---|
+| `HeaderProvider` | `getOrder()`, `supports()`, `resolve()` |
+| `RequestExecutor` | `execute(RequestIntent, headers)` |
+
+## RequestIntent Model
+
+| Field | Type | Notes |
+|---|---|---|
+| `method` | enum | GET, POST, PUT, DELETE, PATCH |
+| `url` | `URI` | Target endpoint |
+| `payload` | `Object` | string body or `File` |
+| `auth` | enum | NONE, API_KEY, BASIC_AUTH, BEARER_TOKEN |
+| `forceNew` | boolean | force new idempotency key |
+| `env` | string | `dev` or `prod` |
+
+## ExecutionResult Model
+
+| Field | Type | Meaning |
+|---|---|---|
+| `statusCode` | int | HTTP status or 0 on transport errors |
+| `body` | string | response/error text |
+| `timeMs` | long | latency in ms |
+| `sizeBytes` | long | response size |
+| `statusCategory` | string | Success/Redirect/Client Error/Server Error |
+
+Status mapping:
+
+| Range | Category |
+|---|---|
+| 200-299 | Success |
+| 300-399 | Redirect |
+| 400-499 | Client Error |
+| 500+ | Server Error |
+
+## SPI Provider Engine
+
+```java
+@Bean
+HeaderEngine headerEngine(StateRepository stateRepository) {
+    return new HeaderEngine(List.of(
+        new ProtocolProvider(),
+        new ApiKeyProvider(),
+        new BasicAuthProvider(),
+        new BearerTokenProvider(),
+        new IdempotencyProvider(stateRepository)
+    ));
+}
+```
+
+Execution sequence:
+
+```text
+1. sort providers by getOrder()
+2. supports(context)
+3. resolve(context)
+4. merge headers
+5. continue on provider errors
+```
+
+<Callout type="warning">
+Header key collisions are resolved by last-writer-wins according to provider order.
+</Callout>
+
+## Idempotency State Lifecycle
+
+Fingerprint rule:
+
+```text
+fingerprint = METHOD + ":" + URL
+```
+
+| Condition | Key behavior |
+|---|---|
+| `forceNew=true` | generate and store new key |
+| no saved key | generate and store new key |
+| saved key exists | reuse saved key |
+
+Persisted in: `~/.intend/intend-state.properties`
+
+## HTTP Executor Profile
+
+| Setting | Value |
+|---|---|
+| HTTP version | HTTP/2 with fallback |
+| Redirects | NORMAL |
+| Connect timeout | 10s |
+| Request timeout | 30s |
+| Streaming threshold | 10MB |
+| TLS trust | system default |
+
+Payload mapping:
+
+| Payload | Publisher |
+|---|---|
+| `null` | `BodyPublishers.noBody()` |
+| `String` | `BodyPublishers.ofString()` |
+| `File` | multipart publisher |
+
+## Threading Model
+
+<Steps>
+### UI event
+
+JavaFX thread captures user action.
+
+### Background work
+
+Request processing and HTTP execution run off UI thread.
+
+### UI update
+
+`Platform.runLater()` applies result back to JavaFX controls.
+</Steps>
+
+## Dependency Injection
+
+| Entry point | Bootstrap |
+|---|---|
+| GUI (`Launcher`) | `SpringApplicationBuilder` in JavaFX init |
+| CLI (`IntendApplication`) | standard `SpringApplication.run()` |
+
+Primary orchestrator dependencies (`IntendServiceImpl`):
+
+- `ContextRepository`
+- `HeaderEngine`
+- `RequestExecutor`
+- `HistoryRepository`
+- `TemplateEngine`
+- `VariableRepository`
+- `ConfigRepository`

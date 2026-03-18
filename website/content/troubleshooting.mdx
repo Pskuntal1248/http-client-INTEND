@@ -1,0 +1,89 @@
+# Troubleshooting
+
+<Callout type="info">
+Use this page as a quick triage guide: identify the symptom, run the suggested check, apply the fix.
+</Callout>
+
+## Fast Triage
+
+<Steps>
+### Confirm runtime prerequisites
+
+Verify Java and packaging tools are available on your machine.
+
+### Reproduce with a minimal request
+
+Use a known URL such as `https://jsonplaceholder.typicode.com/posts/1`.
+
+### Inspect local data files
+
+Check files under `~/.intend/` for corruption or permission issues.
+</Steps>
+
+## Build and Packaging
+
+| Symptom | Check | Fix |
+|---|---|---|
+| `jpackage` not found | `java -version` and `which jpackage` | Install JDK 17+ and update `PATH` |
+| Windows MSI build fails | `where candle` / `where light` | Install [WiX Toolset 3.x](https://wixtoolset.org/) |
+| `InaccessibleObjectException` | Review JVM args in startup command | Include configured `--add-opens` flags from project setup |
+| App icon missing on macOS | Verify icon file path | Ensure `image.icns` exists in project root |
+
+## Runtime and Request Errors
+
+| Symptom | Likely cause | Resolution |
+|---|---|---|
+| `Connection refused` | Target service down or wrong port | Start target service and verify URL |
+| `Unknown host` | DNS typo or network issue | Validate hostname and connectivity |
+| `{{variable}}` not resolved | Variable not captured yet | Re-run capture request and check key spelling |
+| History panel empty | Corrupted or unreadable history file | Validate or remove `~/.intend/history.json` |
+| Settings not persisted | No write permission in data directory | Fix ownership/permissions on `~/.intend/` |
+
+## Data Directory Reference
+
+```text
+~/.intend/
+|- history.json
+|- intend-config.json
+`- intend-state.properties
+```
+
+## Recovery Commands
+
+<Tabs items={["Reset all local state", "Repair history only"]}>
+	<Tabs.Tab>
+
+```bash
+rm -rf ~/.intend/
+```
+
+Intend recreates defaults on next launch.
+
+	</Tabs.Tab>
+	<Tabs.Tab>
+
+```bash
+# validate JSON shape
+python3 -m json.tool ~/.intend/history.json
+
+# if invalid, remove only history
+rm ~/.intend/history.json
+```
+
+	</Tabs.Tab>
+</Tabs>
+
+## Performance Baseline
+
+| Metric | Expected range |
+|---|---|
+| GUI startup | under 3s on warm system |
+| Template resolution | under 1ms per request |
+| Header pipeline | under 5ms per request |
+| Connect timeout | 10s |
+| Request timeout | 30s |
+| Streaming threshold | over 10MB response payload |
+
+<Callout type="warning">
+If startup slows down over time, archive or trim `history.json` to reduce load cost during boot.
+</Callout>
