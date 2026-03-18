@@ -720,8 +720,10 @@ public class MainWindow extends Application {
             intendService.getConfigRepository().save(
                 devUrlField.getText(),
                 devKeyField.getText(),
+                "", "", "",
                 prodUrlField.getText(),
-                prodKeyField.getText()
+                prodKeyField.getText(),
+                "", "", ""
             );
             settingsStage.close();
         });
