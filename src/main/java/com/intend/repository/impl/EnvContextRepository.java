@@ -19,29 +19,19 @@ public class EnvContextRepository implements ContextRepository {
     @Override
     public ResolutionContext loadContext(RequestIntent intent) {
         ConfigRepository.ConfigData data = configRepository.get();
+        boolean isProd = "prod".equalsIgnoreCase(intent.env());
 
-        if ("prod".equalsIgnoreCase(intent.env())) {
-            return new ResolutionContext(
-                intent,
-                Map.of(
-                    "BASE_URL", data.prodUrl,
-                    "ENV", "prod"
-                ),
-                Map.of(
-                    "API_KEY", data.prodKey
-                )
-            );
-        }
-
-        return new ResolutionContext(
-            intent,
-            Map.of(
-                "BASE_URL", data.devUrl,
-                "ENV", "dev"
-            ),
-            Map.of(
-                "API_KEY", data.devKey
-            )
+        Map<String, String> config = Map.of(
+            "BASE_URL", isProd ? data.prodUrl : data.devUrl,
+            "ENV", isProd ? "prod" : "dev"
         );
+
+        Map<String, String> secrets = new java.util.HashMap<>();
+        secrets.put("API_KEY", isProd ? data.prodKey : data.devKey);
+        secrets.put("ACCESS_TOKEN", isProd ? data.prodBearerToken : data.devBearerToken);
+        secrets.put("BASIC_USER", isProd ? data.prodBasicUser : data.devBasicUser);
+        secrets.put("BASIC_PASS", isProd ? data.prodBasicPass : data.devBasicPass);
+
+        return new ResolutionContext(intent, config, secrets);
     }
 }
