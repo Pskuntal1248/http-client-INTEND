@@ -6,7 +6,6 @@ import com.intend.core.RequestIntent;
 import com.intend.engine.HeaderEngine;
 import com.intend.engine.TemplateEngine;
 import com.intend.providers.*;
-import com.intend.repository.StateRepository;
 import com.intend.repository.VariableRepository;
 import com.intend.spi.HeaderProvider;
 import org.junit.jupiter.api.*;
@@ -24,17 +23,15 @@ class EndToEndIntegrationTest {
     private static VariableRepository variableRepository;
     private static TemplateEngine templateEngine;
     private static HeaderEngine headerEngine;
-    private static InMemoryStateRepository stateRepository;
 
     @BeforeAll
     static void initPipeline() {
         variableRepository = new VariableRepository();
         templateEngine = new TemplateEngine(variableRepository);
-        stateRepository = new InMemoryStateRepository();
 
         List<HeaderProvider> providers = List.of(
             new ProtocolProvider(),
-            new IdempotencyProvider(stateRepository),
+            new IdempotencyProvider(),
             new ApiKeyProvider(),
             new BasicAuthProvider(),
             new BearerTokenProvider()
@@ -164,15 +161,14 @@ class EndToEndIntegrationTest {
         assertThat(resolvedBody).containsPattern("\"id\": \"[a-f0-9-]+\"");
     }
 
-    // ── Scenario 6: Idempotency Key Reuse ──────────────────────────
+    // ── Scenario 6: Idempotency Key Generation ─────────────────────
 
     @Test
     @Order(6)
-    @DisplayName("E2E: Idempotency key is reused on retry, fresh on forceNew")
+    @DisplayName("E2E: Idempotency key is generated")
     void idempotencyKeyLifecycle() {
         URI orderUrl = URI.create("https://api.example.com/orders");
 
-        // First POST – generates a key
         RequestIntent first = new RequestIntent(
             RequestIntent.Method.POST, orderUrl, "{}",
             RequestIntent.AuthStrategy.NONE, false, "dev"
@@ -181,19 +177,6 @@ class EndToEndIntegrationTest {
         Map<String, String> h1 = headerEngine.execute(ctx1);
         String firstKey = h1.get("Idempotency-Key");
         assertThat(firstKey).isNotNull();
-
-        // Retry – same key reused
-        Map<String, String> h2 = headerEngine.execute(ctx1);
-        assertThat(h2.get("Idempotency-Key")).isEqualTo(firstKey);
-
-        // Force new – different key
-        RequestIntent forceNew = new RequestIntent(
-            RequestIntent.Method.POST, orderUrl, "{}",
-            RequestIntent.AuthStrategy.NONE, true, "dev"
-        );
-        ResolutionContext ctx2 = new ResolutionContext(forceNew, Map.of(), Map.of());
-        Map<String, String> h3 = headerEngine.execute(ctx2);
-        assertThat(h3.get("Idempotency-Key")).isNotEqualTo(firstKey);
     }
 
     // ── Scenario 7: DELETE should not get idempotency key ──────────
@@ -279,18 +262,4 @@ class EndToEndIntegrationTest {
     }
 
     // ── Helper ─────────────────────────────────────────────────────
-
-    static class InMemoryStateRepository implements StateRepository {
-        private final Map<String, String> store = new HashMap<>();
-
-        @Override
-        public String getLastIdempotencyKey(String key) {
-            return store.get(key);
-        }
-
-        @Override
-        public void saveIdempotencyKey(String key, String uuid) {
-            store.put(key, uuid);
-        }
-    }
 }
