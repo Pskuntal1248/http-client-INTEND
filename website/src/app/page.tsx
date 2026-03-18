@@ -668,7 +668,7 @@ function Footer() {
 
 export default function Page() {
   return (
-    <>
+    <div className="dark bg-background text-foreground min-h-[100dvh]">
       <Nav />
       <main>
         <Hero />
@@ -679,6 +679,6 @@ export default function Page() {
         <CTA />
       </main>
       <Footer />
-    </>
+    </div>
   );
 }

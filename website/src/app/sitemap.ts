@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://intend.dev";
+  const baseUrl = "https://intend-1.vercel.app";
 
   return [
     {

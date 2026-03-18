@@ -24,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark scroll-smooth" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* Umami Analytics — privacy-friendly, no cookies */}
         {/* To enable: sign up at https://cloud.umami.is (free tier) or self-host, */}
@@ -38,7 +38,7 @@ export default function RootLayout({
         */}
       </head>
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-black text-white`}
+        className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-background text-foreground`}
       >
         {children}
       </body>
