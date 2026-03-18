@@ -1,5 +1,6 @@
 package com.intend.repository;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Repository;
 
@@ -17,22 +18,36 @@ public class ConfigRepository {
         load();
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ConfigData {
         public String devUrl = "http://localhost:8080";
         public String devKey = "";
+        public String devBearerToken = "";
+        public String devBasicUser = "";
+        public String devBasicPass = "";
         public String prodUrl = "https://api.example.com";
         public String prodKey = "";
+        public String prodBearerToken = "";
+        public String prodBasicUser = "";
+        public String prodBasicPass = "";
     }
 
     public ConfigData get() {
         return cache;
     }
 
-    public void save(String devUrl, String devKey, String prodUrl, String prodKey) {
+    public void save(String devUrl, String devKey, String devBearerToken, String devBasicUser, String devBasicPass,
+                     String prodUrl, String prodKey, String prodBearerToken, String prodBasicUser, String prodBasicPass) {
         cache.devUrl = devUrl;
         cache.devKey = devKey;
+        cache.devBearerToken = devBearerToken;
+        cache.devBasicUser = devBasicUser;
+        cache.devBasicPass = devBasicPass;
         cache.prodUrl = prodUrl;
         cache.prodKey = prodKey;
+        cache.prodBearerToken = prodBearerToken;
+        cache.prodBasicUser = prodBasicUser;
+        cache.prodBasicPass = prodBasicPass;
         try {
             mapper.writerWithDefaultPrettyPrinter().writeValue(file, cache);
         } catch (IOException e) {
