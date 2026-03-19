@@ -1,0 +1,18 @@
+# Authentication Resolution
+
+Authentication inside Intend is completely declarative. 
+
+Instead of generating and maintaining redundant Authorization bindings per-URL, Intend defers all mapping responsibility to the SPI pipeline executing natively at Priority Order 90+.
+
+## How Resolutions Guard Execution
+
+Because Intend forces you to configure environment credentials exactly once at the workspace level, it allows the Engine to inject auth completely cleanly via guarded implementations.
+
+- If you select `API_KEY` in the UI Dropdown, the `ApiKeyProvider` triggers, parsing the environment and explicitly mutating an `X-API-KEY` compilation.
+- If you switch the UI to `BEARER_TOKEN`, the `BearerTokenProvider` instantly takes over and builds `Authorization: Bearer <token>`.
+
+### Environment Synchronization
+
+If you are developing against a local backend, and hit a boundary requiring production data, simply flipping the Environment UI toggle from `DEV` to `PROD` forces Intend to fetch your production credentials on the very next dispatch. 
+
+You completely avoid ever having to manage or paste secret tokens in plaintext directly into your Request Editor screens.

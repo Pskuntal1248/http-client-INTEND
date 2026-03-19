@@ -1,0 +1,70 @@
+# Download Intend
+
+Get Intend via a native installer for your platform, or build from source.
+
+## Native Installers
+
+<Tabs items={["macOS", "Windows", "Linux"]}>
+	<Tabs.Tab>
+
+Download the `.dmg` from [intend-1.vercel.app](https://intend-1.vercel.app). Open the disk image and drag **Intend** into your Applications folder.
+
+	</Tabs.Tab>
+	<Tabs.Tab>
+
+Download the `.msi` from [intend-1.vercel.app](https://intend-1.vercel.app). Run the installer wizard and follow the prompts.
+
+	</Tabs.Tab>
+	<Tabs.Tab>
+
+Download the package for your distribution from [intend-1.vercel.app](https://intend-1.vercel.app).
+
+**Debian / Ubuntu**
+```bash
+sudo dpkg -i intend_*.deb
+```
+
+**Fedora / RHEL**
+```bash
+sudo rpm -i intend-*.rpm
+```
+
+	</Tabs.Tab>
+</Tabs>
+
+<Callout type="info">
+All installers bundle a JDK — no separate Java installation required.
+</Callout>
+
+## Building from Source
+
+**Prerequisites:**
+- JDK 17+ (with `jpackage` for native packaging)
+- Maven 3.8+ (or use the included wrapper)
+- WiX Toolset 3.x (Windows only, for MSI generation)
+
+Clone and run:
+```bash
+git clone https://github.com/pskuntal1248/http-client-intend.git
+cd http-client-intend
+./mvnw spring-boot:run
+```
+
+Standalone JAR:
+```bash
+./mvnw clean package -DskipTests
+java -jar target/intend-2.0.0-SNAPSHOT.jar
+```
+
+<Callout type="warning">
+WiX Toolset is only required on Windows for generating `.msi` installers. It is not needed for development or on other platforms.
+</Callout>
+
+## System Requirements
+
+| Component | Version |
+|---|---|
+| Java | 17+ |
+| Spring Boot | 3.2 |
+| JavaFX | 21 |
+| OS | macOS, Windows, or Linux |

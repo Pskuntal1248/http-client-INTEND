@@ -1,0 +1,22 @@
+# API Client Overview
+
+Intend is engineered to be a seamless translation layer between your intent and the HTTP protocol. 
+
+Rather than working with a blank slate where you must inject manual headers, Intend approaches API testing dynamically: **You declare what you want to do, and Intend translates it into the flawless HTTP traffic required to execute it.**
+
+## The Core Interaction Loop
+
+Using Intend involves a very straightforward cycle:
+
+1. **Define Intent:** Select your method, URL, auth strategy, and payload.
+2. **Execute:** Intend's internal engines generate all necessary protocol scaffolding, attach UUIDs for tracing and idempotency, and dispatch the request over HTTP/2.
+3. **Analyze:** The Response Viewer formats the output and allows you to capture values for the next link in your testing chain.
+
+## Zero Setup
+
+Unlike Postman or Insomnia where you must define collections and environments *before* testing effectively, Intend is immediately ready. You can download it, open it, and hit `GET https://api.github.com` without creating an account or logging in.
+
+### Continue Exploring
+- [Sending Requests & Uploads](/docs/api-client/sending-requests)
+- [Variables & Environments](/docs/api-client/variables-environments)
+- [Chaining & Responses](/docs/api-client/chaining-responses)

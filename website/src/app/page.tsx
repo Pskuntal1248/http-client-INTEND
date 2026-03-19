@@ -539,45 +539,47 @@ function Comparison() {
           transition={{ duration: 0.4, delay: 0.15 }}
           className="mt-10 overflow-hidden rounded-2xl border border-neutral-800"
         >
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-neutral-800 bg-neutral-950/50">
-                <th className="px-5 py-3.5 text-left font-medium text-neutral-600" />
-                <th className="w-24 px-4 py-3.5 text-center font-semibold text-white">
-                  Intend
-                </th>
-                <th className="w-24 px-4 py-3.5 text-center font-medium text-neutral-600">
-                  Postman
-                </th>
-                <th className="w-24 px-4 py-3.5 text-center font-medium text-neutral-600">
-                  Insomnia
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr
-                  key={r.feat}
-                  className="border-b border-neutral-800/40 last:border-0"
-                >
-                  <td className="px-5 py-3 text-neutral-500">{r.feat}</td>
-                  <td className="px-4 py-3 text-center">
-                    {r.intend ? (
-                      <CheckCircle2 className="mx-auto h-4 w-4 text-emerald-500/80" />
-                    ) : (
-                      <XCircle className="mx-auto h-4 w-4 text-neutral-800" />
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <XCircle className="mx-auto h-4 w-4 text-neutral-800" />
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <XCircle className="mx-auto h-4 w-4 text-neutral-800" />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[36rem]">
+              <thead>
+                <tr className="border-b border-neutral-800 bg-neutral-950/50">
+                  <th className="px-5 py-3.5 text-left font-medium text-neutral-600" />
+                  <th className="w-24 px-4 py-3.5 text-center font-semibold text-white">
+                    Intend
+                  </th>
+                  <th className="w-24 px-4 py-3.5 text-center font-medium text-neutral-600">
+                    Postman
+                  </th>
+                  <th className="w-24 px-4 py-3.5 text-center font-medium text-neutral-600">
+                    Insomnia
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr
+                    key={r.feat}
+                    className="border-b border-neutral-800/40 last:border-0"
+                  >
+                    <td className="px-5 py-3 text-neutral-500">{r.feat}</td>
+                    <td className="px-4 py-3 text-center">
+                      {r.intend ? (
+                        <CheckCircle2 className="mx-auto h-4 w-4 text-emerald-500/80" />
+                      ) : (
+                        <XCircle className="mx-auto h-4 w-4 text-neutral-800" />
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <XCircle className="mx-auto h-4 w-4 text-neutral-800" />
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <XCircle className="mx-auto h-4 w-4 text-neutral-800" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </motion.div>
       </div>
     </section>

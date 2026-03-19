@@ -1,0 +1,37 @@
+import { FileTree } from 'nextra/components'
+
+# Desktop App Setup
+
+Run Intend as a standalone JAR when you're not using native installers.
+
+## Running the JAR
+
+```bash
+java -jar intend-2.0.0-SNAPSHOT.jar
+```
+
+<Callout type="warning">
+Requires **Java 17+** on your system. Native installers bundle a JDK automatically.
+</Callout>
+
+## Local Data Storage
+
+All data is stored locally — no cloud, no account, no telemetry.
+
+<FileTree>
+  <FileTree.Folder name="~/.intend/" defaultOpen>
+    <FileTree.File name="history.json" />
+    <FileTree.File name="intend-config.json" />
+    <FileTree.File name="intend-state.properties" />
+  </FileTree.Folder>
+</FileTree>
+
+| File | Purpose |
+| --- | --- |
+| `history.json` | Saved requests with method, URL, body, and timestamp |
+| `intend-config.json` | Environment base URLs and API keys per environment |
+| `intend-state.properties` | Idempotency key fingerprints for retry safety |
+
+<Callout type="info">
+Uninstalling Intend does **not** delete `~/.intend/`. Your data survives reinstalls and OS upgrades. Delete it manually for a clean slate.
+</Callout>

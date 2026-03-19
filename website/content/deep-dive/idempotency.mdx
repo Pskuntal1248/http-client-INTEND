@@ -1,0 +1,21 @@
+# Idempotency Strategy
+
+Duplicate protection is arguably the most critical component of live infrastructure testing. Executing the same Stripe `POST` charge twice because of a network timeout can be catastrophic.
+
+Intend inherently prevents this via the `IdempotencyProvider`.
+
+## The State Machine
+
+Whenever you fire a **POST**, **PUT**, or **PATCH** command, Intend invokes an internal Idempotency tracking machine to guarantee transaction safety across retries.
+
+**Step 1: Fingerprinting**
+A unique fingerprint is deterministically derived from your target endpoint (`METHOD + ":" + URL`). 
+Example: `POST:https://api.example.com/checkout`
+
+**Step 2: Key Resolution Lifecycle**
+Intend searches the local `FileStateRepository` (stored safely in `~/.intend/intend-state.properties`) for a previously established transaction UUID mapping to that fingerprint. 
+
+- **If no prior fingerprint mapping exists:** Intend generates a mass-scale, cryptographically random standard UUID v4, instantly commits it to the persistence layer, and injects it as both the `Idempotency-Key` and `X-Request-ID` headers.
+- **If a prior fingerprint mapping DOES exist:** Intend intercepts the execution and intentionally re-uses the established UUID. This guarantees that if the target server dropped your connection midway, your subsequent manual retry acts cleanly as a true retry rather than an explicitly disjointed transaction anomaly that the server might mistakenly re-process.
+
+This provides out-of-the-box Stripe-style Idempotency logic locally without manual coordination.

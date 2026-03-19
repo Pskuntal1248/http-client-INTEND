@@ -1,0 +1,50 @@
+# Quick Start
+
+Send your first API request in under 30 seconds.
+
+## Send your first request
+
+<Steps>
+### Launch Intend
+
+Open the app. The single-window workspace loads immediately — no sign-in, no project setup.
+
+### Configure your intent
+
+- **Method:** `GET`
+- **URL:** `https://jsonplaceholder.typicode.com/posts/1`
+- **Auth:** `NONE`
+
+### Hit SEND
+
+Click the **SEND** button.
+
+### Read the response
+
+- The status bar shows **`200 Success`** with response time and size.
+- The response body displays formatted JSON.
+- Click the **Headers** tab to see every header Intend resolved automatically.
+
+</Steps>
+
+## What just happened?
+
+You didn't set `Accept`, `User-Agent`, `Content-Type`, or any browser fingerprints. You didn't have to.
+
+Intend's **Header Engine** — an SPI pipeline that runs before every request — auto-resolved all of them:
+
+- `User-Agent` matching your OS + a randomized Chrome version
+- `Accept: */*`, `Accept-Language`, `Accept-Encoding`
+- `Sec-Ch-Ua`, `Sec-Fetch-*`, `Origin`, `Referer`
+
+Every header is designed to look like a real browser session, bypassing Cloudflare, WAF checks, and bot-detection layers without manual configuration.
+
+<Callout type="info">
+Every header Intend resolves is visible in the **Headers** tab after each request. Nothing is hidden.
+</Callout>
+
+## Try something harder
+
+Send a `POST` with Bearer auth. Intend will automatically resolve `Content-Type`, `Authorization`, and an `Idempotency-Key` — zero manual headers.
+
+[Sending Requests →](/docs/api-client/sending-requests)

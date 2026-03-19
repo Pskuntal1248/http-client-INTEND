@@ -1,0 +1,80 @@
+# The Workspace
+
+Intend is a single-window native workspace built for focused API development. History sidebar, request editor, response viewer — all in a dark-themed interface designed for speed.
+
+![Intend Workspace](/workspace.png)
+
+## Workspace Anatomy
+
+<div className="docs-box-grid docs-box-grid-2">
+  <div className="docs-box-card">
+    <h3 className="docs-box-title">Top Bar</h3>
+    <div className="docs-box-text">
+      - **Method Dropdown** — Select `GET`, `POST`, `PUT`, `DELETE`, or `PATCH`
+      - **Auth Strategy Dropdown** — Choose your authentication mode
+      - **Environment Switcher** — Toggle between `DEV` and `PROD` instantly
+      - **Settings (⚙)** — Configure environment variables and API keys
+    </div>
+  </div>
+  <div className="docs-box-card">
+    <h3 className="docs-box-title">Request Editor</h3>
+    <div className="docs-box-text">
+      - **URL Field** — Full endpoint entry with `{"{{variable}}"}` support
+      - **Body Editor** — Write JSON, XML, or plain text payloads
+      - **Attach File** — Upload files via multipart/form-data
+      - **Chain Checkbox + Capture Rules** — Extract response values (e.g., `USER_ID=/id`) for downstream requests
+    </div>
+  </div>
+  <div className="docs-box-card">
+    <h3 className="docs-box-title">Response Viewer</h3>
+    <div className="docs-box-text">
+      - **Formatted Body** — Auto-formatted JSON, XML, and HTML output
+      - **Headers Tab** — View the resolved request headers sent by Intend
+      - **Expand Button (⤢)** — Toggle full-height response view
+      - **Status Bar** — Color-coded bar showing status code, category, response time, and payload size
+    </div>
+  </div>
+  <div className="docs-box-card">
+    <h3 className="docs-box-title">History Sidebar</h3>
+    <div className="docs-box-text">
+      - **Auto-Save** — Every request is saved automatically
+      - **Method Badges** — Color-coded: GET = Green, POST = Blue, PUT = Yellow, DELETE = Red, PATCH = Purple
+      - **Click** to reload a request, **right-click** to delete it
+      - **Toggle Button** — Collapse or expand the sidebar
+    </div>
+  </div>
+</div>
+
+## Status Color Coding
+
+The status bar uses color to communicate response state at a glance.
+
+| Status Range | Color      | Meaning      |
+| ------------ | ---------- | ------------ |
+| `200–299`    | **Green**  | Success      |
+| `300–399`    | **Yellow** | Redirect     |
+| `400–499`    | **Red**    | Client Error |
+| `500+`       | **Red**    | Server Error |
+
+## Workspace Controls
+
+Every control in the workspace, at a glance.
+
+| Control             | Location        | Description                                                  |
+| ------------------- | --------------- | ------------------------------------------------------------ |
+| Method Dropdown     | Top Bar         | Select the HTTP method (`GET`, `POST`, `PUT`, `DELETE`, `PATCH`) |
+| Auth Dropdown       | Top Bar         | Choose an authentication strategy                            |
+| Env Dropdown        | Top Bar         | Switch between `DEV` and `PROD` environments                 |
+| Settings Button     | Top Bar         | Open environment and API key configuration                   |
+| URL Field           | Request Editor  | Enter the full endpoint URL with variable interpolation      |
+| Request Body        | Request Editor  | Write the request payload in JSON, XML, or plain text        |
+| Attach File         | Request Editor  | Upload a file for multipart/form-data requests               |
+| Chain Checkbox      | Request Editor  | Enable response chaining for the current request             |
+| Capture Field       | Request Editor  | Define capture rules to extract values from the response     |
+| SEND Button         | Request Editor  | Execute the configured request                               |
+| Body / Headers Tabs | Response Viewer | Toggle between the response body and resolved headers        |
+| Response Viewer     | Response Viewer | Displays the auto-formatted response output                  |
+| Expand Button (⤢)  | Response Viewer | Expand the response viewer to full height                    |
+| Status Bar          | Response Viewer | Shows status code, category, response time, and payload size |
+| History Sidebar     | Left Panel      | Browse and reload previously sent requests                   |
+| Toggle Button       | Left Panel      | Collapse or expand the history sidebar                       |

@@ -1,0 +1,53 @@
+# Variables & Environments
+
+Intend integrates a high-performance **Template Engine** allowing you to dynamically inject random variables into your URLs and payloads, and seamlessly drift between environments without modifying credentials.
+
+## Setting Environments
+
+Most developers work against dual targets: Development (`localhost`) and Production (`api.example.com`).
+
+Intend formalizes this with an integrated **Environment Dropdown** nested in the top application bar (`DEV` and `PROD`).
+
+### Configuring Constants
+
+Click the **Settings (⚙)** target right alongside the dropdown.
+Here, map out your infrastructure:
+
+- **DEV Target:** Specify your local or staging baseline URL.
+- **DEV Key:** Securely store your staging API Key or OAuth token.
+- **PROD Target:** Specify your production domain.
+- **PROD Key:** Securely hold your production key.
+
+When you toggle the environment dropdown midway through a session, Intend's execution engine seamlessly swaps the injected `BASE_URL`, `API_KEY` and `ACCESS_TOKEN` secrets during request compilation. You do NOT have to update headers inside the Request Editor.
+
+## Template Generators
+
+Dynamic data ensures your validation tests remain resilient. Type any `{{variable}}` string directly into your URL or request body. Intend processes these templates mathematically prior to dispatch.
+
+**Available built-in generators:**
+
+| Pattern | Execution Result | Example Yield |
+|---|---|---|
+| `{{uuid}}` | Generates a randomized UUID v4 | `550e8400-e29b...` |
+| `{{timestamp}}` | Generates an ISO-8601 UTC instant | `2026-03-02T14:30.00Z` |
+| `{{randomInt}}` | Selects a random integer from `0-999` | `427` |
+| `{{randomEmail}}` | Generates a mock email alias | `user_3847@example.com` |
+| `{{randomUser}}` | Generates a mock username | `User42` |
+
+> [!TIP]
+> Every individual generator template yields a completely fresh variation on every single execution. 
+
+### Payload Example
+
+```json
+{
+  "transaction_id": "{{uuid}}",
+  "customer": {
+    "email": "{{randomEmail}}",
+    "name": "{{randomUser}}"
+  },
+  "created_at": "{{timestamp}}"
+}
+```
+
+Intend will compile this mock data correctly without exposing the brackets to the live server.
