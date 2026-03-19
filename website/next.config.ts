@@ -5,5 +5,12 @@ const withNextra = nextra({
 })
 
 export default withNextra({
-  /* config options here */
+  async rewrites() {
+    return [
+      {
+        source: '/_pagefind/:path*',
+        destination: '/_next/static/chunks/_pagefind/:path*',
+      },
+    ]
+  },
 })
