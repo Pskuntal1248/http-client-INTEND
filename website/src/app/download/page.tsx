@@ -117,12 +117,7 @@ function Nav() {
             GitHub
           </a>
         </div>
-        <Link
-          href="/download"
-          className="rounded-lg bg-red-600 px-4 py-1.5 text-sm font-medium text-white transition hover:-translate-y-0.5 hover:bg-red-500 shadow-[0_0_15px_rgba(220,38,38,0.3)] hover:shadow-[0_0_20px_rgba(220,38,38,0.5)]"
-        >
-          Download
-        </Link>
+
       </div>
     </nav>
   );
