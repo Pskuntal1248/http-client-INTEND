@@ -14,6 +14,7 @@ export default async function DocsLayout({ children }: { children: React.ReactNo
       docsRepositoryBase="https://github.com/pskuntal1248/http-client-intend/tree/main/website"
       navbar={<Navbar logo={<span style={{ fontWeight: 700 }}>Intend Docs</span>} />}
       footer={<Footer />}
+      nextThemes={{ defaultTheme: 'dark' }}
     >
       <div className="intend-docs">{children}</div>
     </Layout>
