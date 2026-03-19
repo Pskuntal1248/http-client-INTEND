@@ -1,60 +1,70 @@
-# Introduction to Intend
+# Intend
+
+## The intent-driven API client.
 
 <Callout type="info">
-**Intend is an intent-driven HTTP abstraction layer.** 
-Instead of micromanaging headers and connection state, you declare your intent (method, URL, auth strategy, payload), and Intend's execution engine handles the rest—automatically resolving complex protocol headers, idempotency keys, content types, and security contexts at runtime.
+**Stop writing headers. Start declaring intent.** Intend is a native desktop HTTP client where you specify *what* you want — method, URL, auth strategy, payload — and the SPI-based header engine resolves *everything* else. No Electron. No account. Fully offline.
 </Callout>
 
-## The Problem with Traditional API Workspaces
+Most API tools make you think like a protocol engineer. You paste `Authorization` headers into every request, manually set `Content-Type`, and pray you don't fire a duplicate charge during a retry.
 
-Every API workspace today forces you to think like a protocol engineer. You manually construct headers, paste auth tokens into every request, and hope you didn't accidentally fire a duplicate payment during a network hiccup.
+Intend eliminates that entire layer. Select `POST`, pick `Bearer Token` from a dropdown, type your endpoint, write your JSON — hit **Send**. The engine resolves `Content-Type`, `Authorization`, `Idempotency-Key`, `X-Request-ID`, and browser-grade headers automatically. Zero raw headers. Zero guesswork.
 
-Intend takes a different approach: **you describe your intent, and the app handles the protocol.**
+---
 
-Select `POST`, choose `Bearer Token` from a dropdown, type your URL, write your JSON body, and hit **SEND**. Intend automatically resolves `Content-Type`, `Authorization`, `Idempotency-Key`, and `X-Request-ID` — no raw headers, no guesswork.
-
-## Why Choose Intend?
+## Why Intend
 
 <div className="docs-box-grid docs-box-grid-2">
   <div className="docs-box-card">
     <h3 className="docs-box-title">Zero-Header Requests</h3>
     <div className="docs-box-text">
-      Headers resolved from your intent automatically.
+      You never write <code>Content-Type</code>, <code>Authorization</code>, or <code>User-Agent</code>. The engine resolves every header from your declared intent — method, auth strategy, and payload type.
     </div>
   </div>
   <div className="docs-box-card">
-    <h3 className="docs-box-title">Pluggable Auth</h3>
+    <h3 className="docs-box-title">Stripe-Style Idempotency</h3>
     <div className="docs-box-text">
-      Auth strategy selected from a dropdown — once.
+      Every <code>POST</code>, <code>PUT</code>, and <code>PATCH</code> gets an <code>Idempotency-Key</code> and <code>X-Request-ID</code> automatically. Retries reuse the same key. New clicks generate new keys. No duplicate charges, ever.
     </div>
   </div>
   <div className="docs-box-card">
-    <h3 className="docs-box-title">Automatic Idempotency</h3>
+    <h3 className="docs-box-title">Pluggable Architecture (SPI)</h3>
     <div className="docs-box-text">
-      Stripe-style idempotency with automatic retry.
+      Headers are resolved through an ordered chain of <code>HeaderProvider</code> plugins. Add custom providers for proprietary auth schemes, signing, or compliance headers — zero changes to core.
     </div>
   </div>
   <div className="docs-box-card">
-    <h3 className="docs-box-title">Offline & Native</h3>
+    <h3 className="docs-box-title">Offline-First, Native Desktop</h3>
     <div className="docs-box-text">
-      Native JavaFX — no browser, no account, fully offline.
+      Built on JavaFX 21 and Spring Boot. No browser runtime, no cloud sync, no account wall. Your data stays in <code>~/.intend/</code> and never leaves your machine.
     </div>
   </div>
 </div>
 
-### Head-to-Head
+---
+
+## How Intend Compares
 
 | Capability | Postman | Insomnia | Thunder Client | **Intend** |
-|---|---|---|---|---|
-| Zero-header requests | — | — | — | **Yes** |
-| Stripe-style idempotency | — | — | — | **Yes** |
-| Browser-like headers | — | — | — | **Yes** |
+|---|:---:|:---:|:---:|:---:|
+| Zero-header requests | ✗ | ✗ | ✗ | **✓** |
+| Auto `Content-Type` resolution | ✗ | ✗ | ✗ | **✓** |
+| Stripe-style idempotency | ✗ | ✗ | ✗ | **✓** |
+| Browser-like headers (WAF bypass) | ✗ | ✗ | ✗ | **✓** |
 | Response chaining | Scripts | Plugin | Limited | **One-click** |
-| Offline / No account | No | No | Yes | **Yes** |
+| Template engine built-in | ✗ | ✗ | ✗ | **✓** |
+| Native desktop (not Electron) | ✗ | ✗ | ✗ | **✓** |
+| Offline / no account required | ✗ | ✗ | ✓ | **✓** |
+
+---
 
 ## Next Steps
 
-Get started by downloading the Intend application tailored for your operating system.
-
-- [Download Intend](/docs/getting-started/download)
-- [Quick Start Guide](/docs/quick-start)
+<Cards>
+  <Card title="Download Intend" href="/docs/getting-started/download">
+    Get the latest build for macOS, Windows, or Linux.
+  </Card>
+  <Card title="Quick Start" href="/docs/quick-start">
+    Send your first intent-driven request in under two minutes.
+  </Card>
+</Cards>

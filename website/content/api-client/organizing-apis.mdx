@@ -1,0 +1,45 @@
+# Organizing APIs: History and Playback
+
+Intend automatically tracks your execution flow so you never lose a tested configuration. 
+
+Rather than forcing you to meticulously organize requests into static folders before you even know if they work, Intend embraces a dynamic, history-first approach.
+
+## The History Sidebar
+
+Every request you send is automatically saved to the History Sidebar situated on the left side of your workspace. 
+
+<br/>
+
+**The sidebar displays:**
+- Code execution **Timestamp**
+- The target **URL**
+- The HTTP **Method** badge
+
+### Visual Flow
+
+The sidebar entries are color-coded to allow for rapid visual scanning when jumping between tests:
+
+| Method Badge | Background Color |
+|---|---|
+| `GET` | **Green** |
+| `POST` | **Blue** |
+| `PUT` | **Yellow** |
+| `DELETE` | **Red** |
+| `PATCH` | **Purple** |
+
+## Replaying Requests
+
+Re-executing an old API interaction is as simple as a single click.
+
+1. Click any history entry in the sidebar.
+2. Intend immediately populates the **Request Editor** with the exact method, URL, auth strategy, environment, and payload you used at that time.
+3. Click **SEND** to fire the exact payload again, or alter it to create a new revision.
+
+> [!NOTE] 
+> Because Intend's internal engines always force a fresh `Idempotency-Key` (unless explicitly programmed otherwise), replaying a `POST` request is statistically safe. Intend treats each manual click of SEND as a fundamentally new intent.
+
+## Management
+
+Your history persists automatically in `~/.intend/history.json` and survives application restarts. 
+
+You can remove any outdated requests by **right-clicking** the sidebar entry and selecting **Delete**. You can also collapse the history completely by clicking the **Toggle History** (`◀ / ▶`) button in the top navigation bar.

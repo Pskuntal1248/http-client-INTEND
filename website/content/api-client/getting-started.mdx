@@ -1,0 +1,44 @@
+# Getting Started (Your First Request)
+
+If you have used any API client before, Intend will feel extremely familiar, yet refreshingly simple. 
+
+## Dissecting a Test Request
+
+Let's imagine you need to create a new user profile on a JSON API.
+
+Typically, you would need to:
+1. Copy-paste a Bearer token into an Authorization header.
+2. Add `Content-Type: application/json`.
+3. Possibly add an Idempotency header if the API uses Stripe-style safety.
+4. Write the JSON payload.
+
+**In Intend, the workflow is compressed into Intent:**
+
+1. Change **Method** to `POST`.
+2. Change **Auth** to `BEARER_TOKEN`.
+3. Type the URL: `https://api.example.com/users`.
+4. Write your JSON body: `{"name": "Alice"}`.
+5. Click **SEND**.
+
+### What Intend does for you
+
+Under the hood, Intend detects your intent and constructs the following:
+
+```http
+POST /users HTTP/2
+Host: api.example.com
+Authorization: Bearer <your-configured-token>
+Content-Type: application/json
+Idempotency-Key: a4f1837-...
+X-Request-ID: a4f1837-...
+Accept: */*
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36...
+```
+
+Notice that **you didn't define any of those headers.** Intend analyzed your intent:
+- It saw you chose `BEARER_TOKEN`, so it fetched your token from the current environment config.
+- It parsed your payload, saw JSON, and injected `Content-Type: application/json`.
+- It saw the `POST` method, so it generated a fresh `Idempotency-Key` to protect against double-submission.
+- It injected standard browser fingerprints to prevent false positives from WAFs (like Cloudflare).
+
+[Learn more about sending complex bodies and files](/docs/api-client/sending-requests).

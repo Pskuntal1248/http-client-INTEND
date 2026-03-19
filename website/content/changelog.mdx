@@ -1,37 +1,35 @@
----
-title: Changelog
----
-
 # Changelog
 
-All notable changes to Intend are documented here.
-
----
+All notable changes to Intend.
 
 ## v2.0.0 — March 2026
 
-**Native Installers**
-- `.dmg` for macOS (Apple Silicon & Intel)
+### Native Installers
+
+- `.dmg` for macOS (Apple Silicon + Intel)
 - `.msi` and `.exe` for Windows
 - `.deb` for Debian/Ubuntu
 - `.rpm` for Fedora/RHEL
 
-**New Features**
-- Stripe-style idempotency — automatic `Idempotency-Key` and `X-Request-ID` on POST/PUT/PATCH
-- Response chaining — capture values from a response and use them as `{{variables}}`
-- File upload support with multipart/form-data
-- Request history panel with search and replay
-- Streaming response viewer for SSE and chunked transfer
+### Features
 
-**Improvements**
-- Zero-config header engine — auto-detects Content-Type, sets User-Agent and browser-like headers
-- Template engine with built-ins: `{{uuid}}`, `{{timestamp}}`, `{{randomEmail}}`
-- Environment switcher (DEV / PROD) with per-environment credentials
-- Plugin architecture (SPI) — extend the header engine with custom `HeaderProvider` plugins
+- **Stripe-style idempotency** — automatic `Idempotency-Key` + `X-Request-ID` on POST/PUT/PATCH
+- **Response chaining** — capture values from responses, use as `{{variables}}`
+- **File upload support** with `multipart/form-data`
+- **Request history** with search and one-click replay
+- **Streaming response viewer** for payloads &gt; 10 MB
 
-**Infrastructure**
+### Engine Improvements
+
+- **Zero-config header engine** — auto-detects `Content-Type`, generates browser-like headers
+- **Template engine** with built-ins: `{{uuid}}`, `{{timestamp}}`, `{{randomEmail}}`, `{{randomInt}}`, `{{randomUser}}`
+- **Environment switcher** (DEV/PROD) with per-environment credentials
+- **SPI plugin architecture** — extend the header engine with custom `HeaderProvider` plugins
+
+### Infrastructure
+
 - GitHub Actions CI/CD with matrix builds (macOS, Windows, Ubuntu)
-- jpackage-based native packaging
+- `jpackage`-based native packaging
 - Spring Boot 3.2.2 + JavaFX 21.0.2
 
 ---

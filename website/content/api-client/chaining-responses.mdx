@@ -1,0 +1,59 @@
+# Chaining & Responses
+
+In many integration flows, subsequent tests necessitate referencing data synthesized by previous requests. Instead of depending on fragile, custom JavaScript execution loops, Intend brings **Declarative Variable Capture** out-of-the-box.
+
+You can capture any string or scalar from one JSON response and automatically pipe it into the URL or body of your next test.
+
+## How to extract variables
+
+Let us assume you are creating a user and then fetching their specific profile.
+
+### 1. Execute the creation target
+
+Fire the standard POST request.
+
+**Request:**
+`POST https://api.example.com/users`
+```json
+{
+  "name": "Alice"
+}
+```
+
+### 2. Configure the Capture Extraction
+
+Beneath the request body, locate and activate the **Chain / Extract Variable** toggle.
+
+In the capture text window, define your extraction rule mapping. We will use standard JSON pointer semantics to target the output.
+
+Wait, Intend natively parses JSON using the path mapping.
+
+Define a rule like so:
+```text
+USER_ID=/id
+```
+
+### 3. Re-Execute Execution
+
+Click **SEND**. 
+When Intend resolves the JSON completion payload:
+```json
+{
+  "id": "abc-123",
+  "name": "Alice"
+}
+```
+The internal engine extracts `abc-123` via the standard `/id` traversal and pushes the association into the in-memory **Variable Repository** mapped to `USER_ID`.
+
+## 4. Resolving the Chain
+
+In your subsequent request, define your template placeholder exactly as your mapped variable key mapping:
+
+**Next Payload:**
+`GET https://api.example.com/users/{{USER_ID}}/orders`
+
+During Execution Compilation, the Context Engine identifies `USER_ID`, fetches `abc-123` from memory, drops it securely into the target string, and executes:
+`GET https://api.example.com/users/abc-123/orders`
+
+> [!WARNING]
+> Captured variables are maintained entirely in memory to protect your privacy and security. They will be aggressively flushed and wiped out immediately when the Intend application is closed or restarted.
