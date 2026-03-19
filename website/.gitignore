@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# pagefind search index
+_pagefind/
+
 # production
 /build
 
