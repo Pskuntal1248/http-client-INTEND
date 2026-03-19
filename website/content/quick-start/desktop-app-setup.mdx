@@ -21,6 +21,7 @@ All data is stored locally — no cloud, no account, no telemetry.
 <FileTree>
   <FileTree.Folder name="~/.intend/" defaultOpen>
     <FileTree.File name="history.json" />
+    <FileTree.File name="saved-requests.json" />
     <FileTree.File name="intend-config.json" />
     <FileTree.File name="intend-state.properties" />
   </FileTree.Folder>
@@ -29,8 +30,9 @@ All data is stored locally — no cloud, no account, no telemetry.
 | File | Purpose |
 | --- | --- |
 | `history.json` | Saved requests with method, URL, body, and timestamp |
+| `saved-requests.json` | Explicitly saved user request collections |
 | `intend-config.json` | Environment base URLs and API keys per environment |
-| `intend-state.properties` | Idempotency key fingerprints for retry safety |
+| `intend-state.properties` | Application execution state |
 
 <Callout type="info">
 Uninstalling Intend does **not** delete `~/.intend/`. Your data survives reinstalls and OS upgrades. Delete it manually for a clean slate.

@@ -71,6 +71,7 @@ classDiagram
         +long timeMs
         +long sizeBytes
         +String statusCategory
+        +Map~String,String~ requestHeaders
         +success(int, String, long) ExecutionResult$
         +error(String) ExecutionResult$
         +isSuccess() boolean
@@ -118,6 +119,8 @@ classDiagram
         -TemplateEngine templateEngine
         -VariableRepository variableRepository
         -ConfigRepository configRepository
+        -SavedRequestRepository savedRequestRepository
+        -ObjectMapper mapper
         +executeRequestWithResult(RequestIntent, Map) ExecutionResult
         -resolveIntent(RequestIntent) RequestIntent
         -captureVariables(String, Map) void
@@ -146,18 +149,9 @@ classDiagram
 | Aspect | Detail |
 |---|---|
 | Annotations | `@SpringBootApplication` |
-| Implements | `CommandLineRunner`, `ExitCodeGenerator` |
-| Injected | `IntendCommand command`, `IFactory factory` |
-| Fields | `int exitCode` |
 
 **`main(String[] args)`**
-Calls `SpringApplication.run()` then `System.exit()` with the exit code.
-
-**`run(String... args)`**
-If `args.length > 0`, executes the Picocli `CommandLine` with the injected command and factory. If no args are passed (GUI mode), this method does nothing — the GUI is launched separately via `Launcher`.
-
-**`getExitCode()`**
-Returns the exit code set by Picocli execution.
+Calls `SpringApplication.run(IntendApplication.class, args)` 
 
 ---
 
@@ -320,16 +314,8 @@ Checks `variableRepository.get(key)`. If found, returns the stored value. If not
 **`resolve()`** logic:
 
 ```
-1. Compute fingerprint = method + ":" + url
-2. If intent.forceNew():
-   a. Generate new UUID
-   b. Save to stateRepository
-   c. Return {Idempotency-Key: uuid, X-Request-ID: uuid}
-3. Else:
-   a. Check stateRepository.getLastIdempotencyKey(fingerprint)
-   b. If key exists → reuse it
-   c. If no key → generate new UUID, save it
-   d. Return {Idempotency-Key: finalKey, X-Request-ID: finalKey}
+1. Generate new UUID via UUID.randomUUID()
+2. Return {Idempotency-Key: uuid, X-Request-ID: uuid}
 ```
 
 Both `Idempotency-Key` and `X-Request-ID` always carry the same UUID value.
@@ -373,6 +359,7 @@ public interface RequestExecutor {
 | `timeMs` | `long` | Round-trip time in milliseconds |
 | `sizeBytes` | `long` | Response body size in bytes |
 | `statusCategory` | `String` | Human-readable category |
+| `requestHeaders` | `Map<String, String>` | The exact headers ultimately produced and sent over the wire |
 
 **Factory methods:**
 
@@ -458,7 +445,7 @@ ExecutionResult executeRequestWithResult(RequestIntent intent, Map<String, Strin
 | Aspect | Detail |
 |---|---|
 | Annotations | `@Service` |
-| Injected | `ContextRepository`, `HeaderEngine`, `RequestExecutor`, `HistoryRepository`, `TemplateEngine`, `VariableRepository`, `ConfigRepository` |
+| Injected | `ContextRepository`, `HeaderEngine`, `RequestExecutor`, `HistoryRepository`, `TemplateEngine`, `VariableRepository`, `ConfigRepository`, `SavedRequestRepository` |
 
 **`executeRequestWithResult(RequestIntent intent, Map<String,String> captures)`**
 
@@ -519,7 +506,7 @@ This is the primary orchestration method. Full flow:
 | Method | Behavior |
 |---|---|
 | Constructor | Calls `load()` — reads JSON array from file into cache |
-| `add(method, url, body)` | Prepends new item (index 0) with `HH:mm:ss` timestamp, calls `save()` |
+| `add(method, url, body)` | Prepends new item (index 0) with `dd MMM yyyy, HH:mm:ss` timestamp, calls `save()` |
 | `getAll()` | Returns a defensive copy of the cache |
 | `delete(item)` | Removes from cache, calls `save()` |
 | `save()` | Writes cache to file via Jackson pretty printer |
@@ -613,7 +600,7 @@ void saveIdempotencyKey(String key, String uuid);
 |---|---|
 | Annotations | `@Configuration` |
 
-**`@Bean headerEngine(StateRepository stateRepository)`:**
+**`@Bean headerEngine()`:**
 
 Manually instantiates all five providers and passes them to `HeaderEngine`:
 
@@ -623,7 +610,7 @@ List<HeaderProvider> providers = List.of(
     new ApiKeyProvider(),            // order 90
     new BasicAuthProvider(),         // order 90
     new BearerTokenProvider(),       // order 91
-    new IdempotencyProvider(stateRepository)  // order 50
+    new IdempotencyProvider()        // order 50
 );
 return new HeaderEngine(providers);
 ```
@@ -632,45 +619,7 @@ Note: The list order here doesn't matter — `HeaderEngine` re-sorts by `getOrde
 
 ---
 
-### 2.11 `com.intend.controller.cli`
-
-#### `IntendCommand`
-
-| Aspect | Detail |
-|---|---|
-| Annotations | `@Component`, `@Command(name = "intend", mixinStandardHelpOptions = true)` |
-| Injected | `IntendService service` |
-
-**Parameters:**
-
-| Annotation | Field | Description |
-|---|---|---|
-| `@Parameters(index = "0")` | `String method` | HTTP method |
-| `@Parameters(index = "1")` | `String url` | Target URL |
-
-**Options:**
-
-| Flag | Field | Type | Default |
-|---|---|---|---|
-| `--auth` | `auth` | `RequestIntent.AuthStrategy` | `NONE` |
-| `-d, --data` | `data` | `String` | null |
-| `--new` | `newKey` | `boolean` | false |
-| `--env` | `environment` | `String` | `"dev"` |
-
-**`call() → Integer`:**
-
-```
-1. Create RequestIntent from parsed parameters
-2. Call service.executeRequestWithResult(intent)
-3. Print result.toPrettyString() with box-drawing border
-4. Return 0 if result.isSuccess(), else 1
-```
-
-Catches `IllegalArgumentException` (invalid input) and generic `Exception` — both print to stderr and return 1.
-
----
-
-### 2.12 `com.intend.ui`
+### 2.11 `com.intend.ui`
 
 #### `Launcher`
 
@@ -860,7 +809,6 @@ classDiagram
     }
 
     class IdempotencyProvider {
-        -StateRepository stateRepository
         +getOrder() 50
         +supports() POST, PUT, PATCH
         +resolve() Idempotency-Key, X-Request-ID
@@ -903,30 +851,9 @@ classDiagram
 
 ```mermaid
 stateDiagram-v2
-    [*] --> CheckForceNew: POST/PUT/PATCH request arrives
-
-    CheckForceNew --> GenerateNew: forceNew == true
-    CheckForceNew --> LookupExisting: forceNew == false
-
-    LookupExisting --> ReuseKey: key exists for fingerprint
-    LookupExisting --> GenerateNew: no key found
-
-    GenerateNew --> SaveToState: UUID.randomUUID()
-    SaveToState --> ReturnHeaders
-
-    ReuseKey --> ReturnHeaders
-
+    [*] --> GenerateNew: POST/PUT/PATCH request arrives
+    GenerateNew --> ReturnHeaders: UUID.randomUUID()
     ReturnHeaders --> [*]: Idempotency-Key + X-Request-ID
-
-    note right of LookupExisting
-        Fingerprint = METHOD + ":" + URL
-        e.g. "POST:https://api.example.com/payments"
-    end note
-
-    note right of ReuseKey
-        Same key prevents duplicate
-        processing on the server
-    end note
 ```
 
 ---
@@ -954,7 +881,7 @@ JSON array, most recent entry first:
 ]
 ```
 
-- Timestamp format: `HH:mm:ss` (24-hour, local time)
+- Timestamp format: `dd MMM yyyy, HH:mm:ss` (local time)
 - New entries are prepended (index 0)
 - Written by Jackson `writerWithDefaultPrettyPrinter()`
 
@@ -1071,7 +998,7 @@ sequenceDiagram
 | `IdempotencyProvider` | Receives `StateRepository` via `@Bean` method parameter |
 | `HeaderEngine` | Receives the ordered provider list |
 
-**Why manual?** The providers are simple value objects with no dependencies on Spring infrastructure. Only `IdempotencyProvider` needs an injected `StateRepository`, which it receives through the `@Bean` factory method's parameter. This keeps the provider implementations decoupled from Spring.
+**Why manual?** The providers are simple value objects with no dependencies on Spring infrastructure.
 
 ```mermaid
 flowchart TB
@@ -1095,7 +1022,6 @@ flowchart TB
         IP["IdempotencyProvider"]
     end
 
-    FSR -->|"injected as StateRepository"| IP
     IP --> HE
     PP --> HE
     AK --> HE

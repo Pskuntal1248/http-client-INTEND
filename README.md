@@ -212,12 +212,78 @@ Every `POST`, `PUT`, and `PATCH` request automatically gets:
 - **Idempotency-Key** — prevents duplicate processing on the server
 - **X-Request-ID** — correlates the request across distributed systems
 
-**How it works (Stripe-style):**
+Both headers always carry the **same UUID** value for a given request.
 
-1. Send a `POST` to `https://api.example.com/payments` → Intend generates a **fresh UUID** as the idempotency key
-2. Click SEND again → a **new key** is generated (every manual send is treated as a new intent)
-3. If the request fails due to a timeout, connection error, or 502/503/504 → Intend **automatically retries** up to 2 times **with the same idempotency key**, so the server won't double-process
-4. Retries use exponential backoff (1s, 2s) and log the reused key
+**How it works under the hood (core Java logic):**
+
+Intend uses a three-layer architecture for idempotency — a **provider** generates the key, the **executor** preserves it across retries, and a **repository** persists it for auditability.
+
+#### Layer 1 — `IdempotencyProvider` (key generation)
+
+Registered in `EngineConfig` at **order 50**, this provider implements the `HeaderProvider` SPI:
+
+```java
+public class IdempotencyProvider implements HeaderProvider {
+    @Override public int getOrder() { return 50; }
+
+    @Override
+    public boolean supports(ResolutionContext ctx) {
+        String method = ctx.intent().method().name();
+        return method.equals("POST") || method.equals("PATCH") || method.equals("PUT");
+    }
+
+    @Override
+    public HeaderResolution resolve(ResolutionContext ctx) {
+        String key = UUID.randomUUID().toString();
+        return HeaderResolution.success(Map.of(
+            "Idempotency-Key", key,
+            "X-Request-ID", key
+        ));
+    }
+}
+```
+
+- For `GET` and `DELETE`, `supports()` returns `false` → no idempotency headers are injected.
+- Every new request gets a **fresh UUID v4** — there is no cached/stale key reuse across separate user actions.
+
+#### Layer 2 — `JavaHttpClientExecutor` (retry with same key)
+
+The executor wraps the HTTP call in a retry loop (up to **2 retries**, 3 total attempts). The critical detail: the `requestHeaders` map — including the `Idempotency-Key` — is created **once** before the loop and reused across all attempts:
+
+```java
+Map<String, String> requestHeaders = new HashMap<>(headers); // key is set here
+for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    // same requestHeaders (same Idempotency-Key) on every attempt
+}
+```
+
+Retries are triggered on:
+- **Transient HTTP errors**: `502 Bad Gateway`, `503 Service Unavailable`, `504 Gateway Timeout`
+- **Network failures**: `HttpTimeoutException`, `ConnectException`
+
+Non-retryable errors (`UnknownHostException`, `SSLException`, `IllegalArgumentException`) fail immediately — no retry.
+
+Retry delay uses linear backoff: `1s × attempt` (1s for retry 1, 2s for retry 2).
+
+#### Layer 3 — `FileStateRepository` (key persistence)
+
+The `StateRepository` interface provides key persistence via a Java Properties file at `~/.intend/intend-state.properties`:
+
+```java
+public interface StateRepository {
+    String getLastIdempotencyKey(String key);
+    void saveIdempotencyKey(String key, String uuid);
+}
+```
+
+`FileStateRepository` loads the file on startup and writes through on every save, enabling key lookup by fingerprint (`METHOD:URL`).
+
+**End-to-end flow:**
+
+1. Send a `POST` to `https://api.example.com/payments` → `IdempotencyProvider` generates a **fresh UUID**, injected as both `Idempotency-Key` and `X-Request-ID`
+2. Click SEND again → a **new UUID** is generated (every manual send is a new intent)
+3. If the request fails with a timeout, connection error, or 502/503/504 → the executor **automatically retries** up to 2 times **with the same idempotency key** so the server won't double-process
+4. Retries use linear backoff (1s, 2s) and log the reused key to the console
 
 This is how Stripe, PayPal, and other production APIs expect clients to behave:
 - **Fresh key per new intent** — no stale cached responses
@@ -623,12 +689,14 @@ All data is stored locally — no cloud, no account, no telemetry.
 ~/.intend/
 ├── history.json               # Every request you've sent
 ├── intend-config.json         # Dev/Prod URLs and API keys
-└── intend-state.properties    # Application state
+├── intend-state.properties    # Application state
+└── saved-requests.json        # Collections of explicitly saved requests
 ```
 
 | File | Purpose |
 |---|---|
 | `history.json` | Saved requests with method, URL, body, and timestamp |
+| `saved-requests.json`| Explicit user-saved collections |
 | `intend-config.json` | Environment base URLs and API keys |
 | `intend-state.properties` | Application state |
 
@@ -664,8 +732,12 @@ src/main/java/com/intend/
 ├── repository/
 │   ├── ConfigRepository.java       # Environment config persistence
 │   ├── HistoryRepository.java      # JSON-based request history
+│   ├── SavedRequestRepository.java # Saved requests structured collection
 │   ├── StateRepository.java        # Idempotency key persistence
 │   ├── VariableRepository.java     # Captured response variables
+│   ├── ContextRepository.java      # Environment context loading interface
+│   ├── impl/
+│   │   └── EnvContextRepository.java # Core context resolution
 │   └── DataDir.java                # ~/.intend/ path resolution
 ├── service/
 │   ├── IntendService.java          # Service interface

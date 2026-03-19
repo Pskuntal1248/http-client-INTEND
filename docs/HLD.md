@@ -39,7 +39,7 @@
 
 Intend is an intent-driven HTTP API client that eliminates manual header construction. Users express what they want — an HTTP method, a URL, an authentication strategy, and a payload — and the system resolves all protocol-level headers automatically through a plugin-based header engine.
 
-The application ships as both a **JavaFX desktop workspace** and a **Picocli command-line interface**, unified by a shared service layer orchestrated through Spring Boot.
+The application ships as a **JavaFX desktop workspace**, orchestrating its workflows through Spring Boot.
 
 ### System Architecture
 
@@ -47,7 +47,6 @@ The application ships as both a **JavaFX desktop workspace** and a **Picocli com
 flowchart TB
     subgraph PRESENTATION["Presentation Layer"]
         MW["MainWindow\n(JavaFX GUI)"]
-        CLI["IntendCommand\n(Picocli CLI)"]
     end
 
     subgraph SERVICE["Service Layer"]
@@ -79,7 +78,6 @@ flowchart TB
     end
 
     MW --> IS
-    CLI --> IS
     IS --> TE
     IS --> HE
     IS --> RE
@@ -106,7 +104,7 @@ flowchart TB
     classDef execStyle fill:#111111,stroke:#FBBF24,stroke-width:2px,color:#ffffff
     classDef persistStyle fill:#111111,stroke:#808080,stroke-width:2px,color:#cccccc
 
-    class MW,CLI guiStyle
+    class MW guiStyle
     class IS serviceStyle
     class TE,HE engineStyle
     class PP,IP,AK,BA,BT providerStyle
@@ -140,9 +138,8 @@ The presentation layer provides two entry points into the same service layer.
 | Component | Class | Technology | Responsibility |
 |---|---|---|---|
 | **GUI** | `MainWindow` | JavaFX 21 | Full workspace: method/URL/auth/env dropdowns, request body editor, response viewer, history sidebar, settings dialog. Bootstrapped via `Launcher` which initializes the JavaFX Application Thread and wires into the Spring context. |
-| **CLI** | `IntendCommand` | Picocli 4.7 | Command-line interface accepting `--method`, `--url`, `--auth`, `--body`, `--env` flags. Bootstrapped via `IntendApplication` (Spring Boot `CommandLineRunner`). |
 
-Both presentation components construct a `RequestIntent` record and delegate to `IntendService`.
+The presentation component constructs a `RequestIntent` record and delegates to `IntendService`.
 
 ### 3.2 Service Layer
 
@@ -187,7 +184,7 @@ Providers are registered in `EngineConfig` and sorted by `getOrder()` ascending:
 
 | Order | Provider | Trigger Condition | Headers Produced |
 |---|---|---|---|
-| 10 | `ProtocolProvider` | Always | `Content-Type` (auto-detected from payload shape: JSON, XML, plain text, or omitted if empty), `Accept: */*` |
+| 10 | `ProtocolProvider` | Always | `Content-Type` (auto-detected), `Accept: */*`, `User-Agent`, `Accept-Language`, `Accept-Encoding`, `Sec-Ch-Ua`, `Sec-Ch-Ua-Mobile`, `Sec-Ch-Ua-Platform`, `Sec-Fetch-Dest`, `Sec-Fetch-Mode`, `Sec-Fetch-Site`, `Origin`, `Referer` |
 | 50 | `IdempotencyProvider` | Method is `POST`, `PUT`, or `PATCH` | `Idempotency-Key`, `X-Request-ID` |
 | 90 | `ApiKeyProvider` | Auth strategy is `API_KEY` | `X-API-KEY` |
 | 90 | `BasicAuthProvider` | Auth strategy is `BASIC_AUTH` | `Authorization: Basic <base64(user:pass)>` |
@@ -219,7 +216,7 @@ Supports three body modes:
 - **String body** — `BodyPublishers.ofString()` for JSON/XML/text payloads
 - **Multipart file upload** — Custom `MultipartUtil` boundary encoding for `File` payloads
 
-Returns an `ExecutionResult` record containing `statusCode`, `body`, `timeMs`, `sizeBytes`, and `statusCategory`.
+Returns an `ExecutionResult` record containing `statusCode`, `body`, `timeMs`, `sizeBytes`, `statusCategory`, and `requestHeaders`.
 
 ### 3.6 Persistence Layer
 
@@ -376,37 +373,7 @@ Intend automatically protects `POST`, `PUT`, and `PATCH` requests against duplic
 
 ### Fingerprinting
 
-The `IdempotencyProvider` generates a fingerprint by concatenating the HTTP method and URL:
-
-```
-fingerprint = METHOD + ":" + URL
-```
-
-Example: `POST:https://api.example.com/payments`
-
-### Key Lifecycle
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  First request to POST:https://api.example.com/payments     │
-│  → No existing key found                                    │
-│  → Generate new UUID → save to intend-state.properties      │
-│  → Attach as Idempotency-Key + X-Request-ID                 │
-├─────────────────────────────────────────────────────────────┤
-│  Second request to same fingerprint (forceNew = false)      │
-│  → Existing key found in state                              │
-│  → Reuse previous key (safe retry semantics)                │
-├─────────────────────────────────────────────────────────────┤
-│  Request with forceNew = true                               │
-│  → Ignore existing key                                      │
-│  → Generate fresh UUID → overwrite in state                 │
-│  → Attach new key (explicit new transaction)                │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Storage
-
-Keys are persisted in `~/.intend/intend-state.properties` via `FileStateRepository`. This ensures keys survive application restarts — a retry after a crash still sends the same idempotency key.
+The `IdempotencyProvider` simply produces a fresh UUID every time it resolves headers. There is no state repository mapping URLs to keys; generation is fully randomized per API call to fulfill typical explicit Stripe-style requirements. 
 
 ### Headers Produced
 
@@ -462,8 +429,14 @@ The `ConfigRepository` manages a `ConfigData` object persisted to `~/.intend/int
 {
   "devUrl": "http://localhost:8080",
   "devKey": "",
+  "devBearerToken": "",
+  "devBasicUser": "",
+  "devBasicPass": "",
   "prodUrl": "https://api.example.com",
-  "prodKey": ""
+  "prodKey": "",
+  "prodBearerToken": "",
+  "prodBasicUser": "",
+  "prodBasicPass": ""
 }
 ```
 
@@ -515,10 +488,8 @@ All application data is stored locally in the user's home directory under `~/.in
 | Runtime | Java (OpenJDK) | 17 | Language and platform |
 | Framework | Spring Boot | 3.2.2 | Dependency injection, component scanning, lifecycle management |
 | GUI | JavaFX | 21.0.2 | Native desktop UI (controls, FXML, graphics) |
-| CLI | Picocli | 4.7.6 | Command-line argument parsing with Spring Boot integration |
 | HTTP Client | `java.net.http.HttpClient` | (JDK built-in) | HTTP/2, TLS, async-capable, no external dependency |
 | Serialization | Jackson Databind | 2.16.1 | JSON parsing for history, config, and response variable capture |
-| Code Generation | Lombok | (provided) | Boilerplate reduction |
 | Build | Maven + Maven Wrapper | 3.x | Build, test, package |
 | Packaging | jpackage (via `jpackage-maven-plugin`) | 1.6.5 | Native installers: `.dmg` (macOS), `.msi` (Windows), `.deb` / `.rpm` (Linux) |
 | Testing | Spring Boot Test + JUnit | (starter) | Unit and integration tests |
@@ -586,5 +557,5 @@ All platforms receive identical `--add-opens` JVM flags to ensure Spring Boot an
 </p>
 
 <p align="center">
-  <sub>Copyright 2024 Intend. All rights reserved.</sub>
+  <sub>Copyright 2026 Intend. All rights reserved.</sub>
 </p>

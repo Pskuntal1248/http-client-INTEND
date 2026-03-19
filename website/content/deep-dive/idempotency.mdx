@@ -2,20 +2,103 @@
 
 Duplicate protection is arguably the most critical component of live infrastructure testing. Executing the same Stripe `POST` charge twice because of a network timeout can be catastrophic.
 
-Intend inherently prevents this via the `IdempotencyProvider`.
+Intend inherently prevents this via a two-layer architecture: the `IdempotencyProvider` generates a fresh key for each explicit intent, and the `JavaHttpClientExecutor` preserves this exact key across automatic network retries.
 
-## The State Machine
+## How It Works
 
-Whenever you fire a **POST**, **PUT**, or **PATCH** command, Intend invokes an internal Idempotency tracking machine to guarantee transaction safety across retries.
+Every **POST**, **PUT**, or **PATCH** request automatically receives two headers — both carrying the same UUID:
 
-**Step 1: Fingerprinting**
-A unique fingerprint is deterministically derived from your target endpoint (`METHOD + ":" + URL`). 
-Example: `POST:https://api.example.com/checkout`
+- `Idempotency-Key` — prevents duplicate processing on the server
+- `X-Request-ID` — correlates the request across distributed systems
 
-**Step 2: Key Resolution Lifecycle**
-Intend searches the local `FileStateRepository` (stored safely in `~/.intend/intend-state.properties`) for a previously established transaction UUID mapping to that fingerprint. 
+`GET` and `DELETE` requests are excluded — they are inherently idempotent and receive no key.
 
-- **If no prior fingerprint mapping exists:** Intend generates a mass-scale, cryptographically random standard UUID v4, instantly commits it to the persistence layer, and injects it as both the `Idempotency-Key` and `X-Request-ID` headers.
-- **If a prior fingerprint mapping DOES exist:** Intend intercepts the execution and intentionally re-uses the established UUID. This guarantees that if the target server dropped your connection midway, your subsequent manual retry acts cleanly as a true retry rather than an explicitly disjointed transaction anomaly that the server might mistakenly re-process.
+## Layer 1 — Key Generation (`IdempotencyProvider`)
 
-This provides out-of-the-box Stripe-style Idempotency logic locally without manual coordination.
+Registered at **order 50** in the `HeaderEngine`, the provider implements the `HeaderProvider` SPI:
+
+```java
+public class IdempotencyProvider implements HeaderProvider {
+
+    @Override public int getOrder() { return 50; }
+
+    @Override
+    public boolean supports(ResolutionContext ctx) {
+        String method = ctx.intent().method().name();
+        return method.equals("POST") || method.equals("PATCH") || method.equals("PUT");
+    }
+
+    @Override
+    public HeaderResolution resolve(ResolutionContext ctx) {
+        String key = UUID.randomUUID().toString();
+        return HeaderResolution.success(Map.of(
+            "Idempotency-Key", key,
+            "X-Request-ID", key
+        ));
+    }
+}
+```
+
+Every new request gets a **fresh UUID v4**. There is no cached or stale key reuse across separate user actions — each click of SEND is treated as a new intent.
+
+## Layer 2 — Retry Safety (`JavaHttpClientExecutor`)
+
+The executor wraps the HTTP call in a retry loop (up to **2 retries**, 3 total attempts). The critical design: the resolved headers map — including the `Idempotency-Key` — is created **once before the loop** and reused across all retry attempts:
+
+```java
+Map<String, String> requestHeaders = new HashMap<>(headers); // Idempotency-Key is already set
+
+for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    // same requestHeaders (same Idempotency-Key) on every attempt
+    if (isRetryableStatus(status) && attempt < MAX_RETRIES) {
+        continue; // retry with identical key
+    }
+}
+```
+
+**Retryable conditions** (automatic retry with the same key):
+- HTTP `502 Bad Gateway`, `503 Service Unavailable`, `504 Gateway Timeout`
+- `HttpTimeoutException` (read timeout)
+- `ConnectException` (TCP connection failure)
+
+**Non-retryable conditions** (fail immediately):
+- `UnknownHostException` — DNS resolution failure
+- `SSLException` — TLS/certificate errors
+- `IllegalArgumentException` — malformed URL
+
+Retry delay uses **linear backoff**: `1s × attempt number` (1s, then 2s).
+
+## End-to-End Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant HE as HeaderEngine
+    participant IP as IdempotencyProvider
+    participant EX as JavaHttpClientExecutor
+    participant S as Server
+
+    U->>HE: SEND (POST /payments)
+    HE->>IP: supports(POST)? → true
+    IP->>IP: UUID.randomUUID()
+    IP-->>HE: Idempotency-Key + X-Request-ID
+    HE-->>EX: resolved headers (key is set once)
+
+    EX->>S: Attempt 1 (Idempotency-Key: abc-123)
+    S-->>EX: 503 Service Unavailable
+
+    Note over EX: Retryable status → wait 1s
+
+    EX->>S: Attempt 2 (same key: abc-123)
+    S-->>EX: 200 OK
+
+    EX-->>U: ExecutionResult
+```
+
+1. User clicks **SEND** on a POST request
+2. `IdempotencyProvider.resolve()` generates a fresh UUID → injected as both `Idempotency-Key` and `X-Request-ID`
+3. `JavaHttpClientExecutor` sends the request with the resolved headers
+4. If the server returns 502/503/504 or the connection times out → the executor **retries with the same headers** (same key)
+5. On success or after exhausting retries → the result is returned to the UI
+
+This provides out-of-the-box Stripe-style idempotency locally without any manual coordination or configuration.
