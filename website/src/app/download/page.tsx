@@ -56,9 +56,6 @@ const platforms = [
   },
 ];
 
-/* ─── ICON PLACEHOLDERS ─── */
-/* Replace these SVGs with your own icons/images for each OS */
-
 function OsIcon({ slot }: { slot: string }) {
   // Placeholder icons – simple monochrome glyphs
   const icons: Record<string, React.ReactNode> = {

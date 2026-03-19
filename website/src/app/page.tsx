@@ -48,8 +48,6 @@ function GitHubStars() {
   );
 }
 
-/* ─── NAV ─── */
-
 function Nav() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -58,8 +56,8 @@ function Nav() {
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
         {/* Logo */}
         <div className="flex items-center gap-2.5">
-          <img src="/logo.png" alt="Intend" className="h-7 w-auto" />
-          <span className="text-base font-bold text-white">Intend</span>
+          <img src="/favicon.png" alt="Intend" className="h-7 w-auto" />
+          <span className="text-base font-bold text-white"></span>
         </div>
 
         {/* Desktop links */}
@@ -85,7 +83,7 @@ function Nav() {
           <GitHubStars />
           <Link
             href="/download"
-            className="rounded-lg bg-white px-4 py-1.5 text-sm font-medium text-black transition hover:-translate-y-0.5 hover:bg-neutral-200"
+            className="rounded-lg bg-red-600 px-4 py-1.5 text-sm font-medium text-white transition hover:-translate-y-0.5 hover:bg-red-500"
           >
             Download
           </Link>
@@ -139,7 +137,7 @@ function Nav() {
               <Link
                 href="/download"
                 onClick={() => setMobileOpen(false)}
-                className="mt-1 rounded-lg bg-neutral-900 px-3 py-2.5 text-center text-sm font-medium text-white transition hover:bg-neutral-800"
+                className="mt-1 rounded-lg bg-red-600 px-3 py-2.5 text-center text-sm font-medium text-white transition hover:bg-red-500"
               >
                 Download
               </Link>
@@ -153,22 +151,31 @@ function Nav() {
 
 /* ─── HERO ─── */
 
-const headline = "The API client that reads your intent".split(" ");
+const headlineWords = [
+  { word: "The", styled: false },
+  { word: "API", styled: true },
+  { word: "client", styled: true },
+  { word: "that", styled: false },
+  { word: "reads", styled: false },
+  { word: "your", styled: false },
+  { word: "intent", styled: false },
+];
 
 function Hero() {
   return (
     <section className="relative mx-auto max-w-6xl">
       <div className="px-6 py-14 sm:py-20 md:py-24">
         <h1 className="mx-auto max-w-3xl text-center text-2xl font-bold leading-tight text-neutral-300 sm:text-3xl md:text-4xl lg:text-6xl">
-          {headline.map((word, i) => (
+          {headlineWords.map((item, i) => (
             <motion.span
               key={i}
               initial={{ opacity: 0, filter: "blur(4px)", y: 10 }}
               animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
               transition={{ duration: 0.3, delay: i * 0.08, ease: "easeInOut" }}
-              className="mr-2 inline-block sm:mr-3"
+              className={`mr-2 inline-block sm:mr-3 ${item.styled ? "text-red-500" : ""}`}
+              style={item.styled ? { fontFamily: "var(--font-playfair)" } : undefined}
             >
-              {word}
+              {item.word}
             </motion.span>
           ))}
         </h1>
@@ -632,7 +639,7 @@ function Footer() {
     <footer className="border-t border-neutral-800/80 py-8">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 text-sm text-neutral-600">
         <div className="flex items-center gap-2.5">
-          <img src="/logo.png" alt="Intend" className="h-5 w-auto opacity-50" />
+          <img src="/favicon.png" alt="Intend" className="h-5 w-auto opacity-50" />
           <span>
             Made by{" "}
             <a
