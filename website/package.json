@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "postbuild": "pagefind --site .next/server/app --output-path .next/static/chunks/_pagefind",
+    "build": "next build && pagefind --site .next/server/app --output-path .next/static/chunks/_pagefind",
     "start": "next start",
     "lint": "eslint"
   },
