@@ -177,7 +177,7 @@ function Footer() {
 
 export default function DownloadPage() {
   return (
-    <>
+    <div className="dark bg-black text-white min-h-[100dvh] w-full selection:bg-neutral-800 selection:text-white">
       <Nav />
       <main className="mx-auto max-w-4xl px-6 py-16 sm:py-24">
         {/* Back link */}
@@ -296,6 +296,6 @@ export default function DownloadPage() {
         </motion.div>
       </main>
       <Footer />
-    </>
+    </div>
   );
 }

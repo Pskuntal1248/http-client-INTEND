@@ -668,7 +668,7 @@ function Footer() {
 
 export default function Page() {
   return (
-    <div className="dark bg-background text-foreground min-h-[100dvh]">
+    <div className="dark bg-black text-white min-h-[100dvh] w-full selection:bg-neutral-800 selection:text-white">
       <Nav />
       <main>
         <Hero />
