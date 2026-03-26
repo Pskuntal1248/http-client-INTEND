@@ -543,7 +543,35 @@ public class MainWindow extends Application {
             }).start();
         });
 
-        Scene scene = new Scene(splitPane, 1100, 750);
+        // -- Update banner (hidden by default) --
+        Label updateLabel = new Label();
+        updateLabel.setStyle("-fx-text-fill: #E6E6E6; -fx-font-size: 12px;");
+        Button updateNowBtn = new Button("Update Now");
+        updateNowBtn.setStyle("-fx-background-color: #4ADE80; -fx-text-fill: #000000; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 4; -fx-padding: 4 14; -fx-cursor: hand;");
+        Label progressLabel = new Label();
+        progressLabel.setStyle("-fx-text-fill: #B3B3B3; -fx-font-size: 11px;");
+        progressLabel.setVisible(false);
+        progressLabel.setManaged(false);
+        Button dismissBtn = new Button("✕");
+        dismissBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #808080; -fx-font-size: 11px; -fx-cursor: hand; -fx-padding: 2 6;");
+        Region bannerSpacer = new Region();
+        HBox.setHgrow(bannerSpacer, Priority.ALWAYS);
+        HBox updateBanner = new HBox(8, updateLabel, updateNowBtn, progressLabel, bannerSpacer, dismissBtn);
+        updateBanner.setAlignment(Pos.CENTER_LEFT);
+        updateBanner.setPadding(new Insets(6, 12, 6, 12));
+        updateBanner.setStyle("-fx-background-color: #1A3A2A; -fx-border-color: #2D5A3D; -fx-border-width: 0 0 1 0;");
+        updateBanner.setVisible(false);
+        updateBanner.setManaged(false);
+
+        dismissBtn.setOnAction(e -> {
+            updateBanner.setVisible(false);
+            updateBanner.setManaged(false);
+        });
+
+        VBox root = new VBox(updateBanner, splitPane);
+        VBox.setVgrow(splitPane, Priority.ALWAYS);
+
+        Scene scene = new Scene(root, 1100, 750);
         scene.getStylesheets().add(getClass().getResource("/styles/intend-theme.css").toExternalForm());
         stage.setTitle("INTEND - API Workspace");
         stage.getIcons().add(new Image(getClass().getResourceAsStream("/icons/image.png")));
@@ -557,6 +585,31 @@ public class MainWindow extends Application {
         } catch (Exception ignored) {}
         stage.setScene(scene);
         stage.show();
+
+        // Check for updates after UI is shown
+        UpdateChecker.checkInBackground((latestVersion, downloadUrl) -> {
+            updateLabel.setText("🚀 Intend v" + latestVersion + " is available!");
+            updateNowBtn.setOnAction(ev -> {
+                updateNowBtn.setDisable(true);
+                updateNowBtn.setText("Updating...");
+                progressLabel.setVisible(true);
+                progressLabel.setManaged(true);
+                dismissBtn.setDisable(true);
+                UpdateChecker.downloadAndInstall(
+                    downloadUrl,
+                    progress -> progressLabel.setText(progress),
+                    error -> {
+                        progressLabel.setText(error);
+                        progressLabel.setStyle("-fx-text-fill: #FF3B3B; -fx-font-size: 11px;");
+                        updateNowBtn.setText("Retry");
+                        updateNowBtn.setDisable(false);
+                        dismissBtn.setDisable(false);
+                    }
+                );
+            });
+            updateBanner.setVisible(true);
+            updateBanner.setManaged(true);
+        });
     }
 
     private void refreshHistory() {
