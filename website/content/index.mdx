@@ -1,70 +1,146 @@
-# Intend
+# Getting Started
 
-## The intent-driven API client.
+### Downloading from the Website (Recommended)
+
+1. Navigate to our official website: [intend-1.vercel.app](https://intend-1.vercel.app)
+2. Click the **Download** button in the top right corner.
+3. Select the appropriate installer for your platform (macOS, Windows, or Linux).
+4. Run the downloaded installer.
+
+*Note: We already provide ready-to-use native installers. You only need to build Intend locally from source if you want to contribute to development or perform custom security audits.*
 
 <Callout type="info">
-**Stop writing headers. Start declaring intent.** Intend is a native desktop HTTP client where you specify *what* you want — method, URL, auth strategy, payload — and the SPI-based header engine resolves *everything* else. No Electron. No account. Fully offline.
+**Intend is an intent-driven HTTP abstraction layer.** 
+Instead of micromanaging headers and connection state, you declare your intent (method, URL, auth strategy, payload), and Intend's execution engine handles the rest—automatically resolving complex protocol headers, idempotency keys, content types, and security contexts at runtime.
 </Callout>
 
-Most API tools make you think like a protocol engineer. You paste `Authorization` headers into every request, manually set `Content-Type`, and pray you don't fire a duplicate charge during a retry.
-
-Intend eliminates that entire layer. Select `POST`, pick `Bearer Token` from a dropdown, type your endpoint, write your JSON — hit **Send**. The engine resolves `Content-Type`, `Authorization`, `Idempotency-Key`, `X-Request-ID`, and browser-grade headers automatically. Zero raw headers. Zero guesswork.
-
----
-
-## Why Intend
-
 <div className="docs-box-grid docs-box-grid-2">
-  <div className="docs-box-card">
-    <h3 className="docs-box-title">Zero-Header Requests</h3>
+  <a
+    href="/docs/installation"
+    className="docs-box-card"
+  >
+    <h3 className="docs-box-title">Installation</h3>
     <div className="docs-box-text">
-      You never write <code>Content-Type</code>, <code>Authorization</code>, or <code>User-Agent</code>. The engine resolves every header from your declared intent — method, auth strategy, and payload type.
+      Prerequisites, source run, native installers, and CI packaging.
     </div>
-  </div>
-  <div className="docs-box-card">
-    <h3 className="docs-box-title">Stripe-Style Idempotency</h3>
+  </a>
+
+  <a
+    href="/docs/features/zero-config-headers"
+    className="docs-box-card"
+  >
+    <h3 className="docs-box-title">Feature Guides</h3>
     <div className="docs-box-text">
-      Every <code>POST</code>, <code>PUT</code>, and <code>PATCH</code> gets an <code>Idempotency-Key</code> and <code>X-Request-ID</code> automatically. Retries reuse the same key. New clicks generate new keys. No duplicate charges, ever.
+      Learn header resolution, variables, chaining, and environments.
     </div>
-  </div>
-  <div className="docs-box-card">
-    <h3 className="docs-box-title">Pluggable Architecture (SPI)</h3>
+  </a>
+
+  <a
+    href="/docs/api-reference"
+    className="docs-box-card"
+  >
+    <h3 className="docs-box-title">API Reference</h3>
     <div className="docs-box-text">
-      Headers are resolved through an ordered chain of <code>HeaderProvider</code> plugins. Add custom providers for proprietary auth schemes, signing, or compliance headers — zero changes to core.
+      Architecture, request lifecycle, and SPI extension points.
     </div>
-  </div>
-  <div className="docs-box-card">
-    <h3 className="docs-box-title">Offline-First, Native Desktop</h3>
+  </a>
+
+  <a
+    href="/docs/troubleshooting"
+    className="docs-box-card"
+  >
+    <h3 className="docs-box-title">Troubleshooting</h3>
     <div className="docs-box-text">
-      Built on JavaFX 21 and Spring Boot. No browser runtime, no cloud sync, no account wall. Your data stays in <code>~/.intend/</code> and never leaves your machine.
+      Fast fixes for setup, runtime, and data issues.
     </div>
-  </div>
+  </a>
 </div>
 
----
+## 30-Second Quick Start
 
-## How Intend Compares
+<Steps>
+### Run Intend from source
 
-| Capability | Postman | Insomnia | Thunder Client | **Intend** |
-|---|:---:|:---:|:---:|:---:|
-| Zero-header requests | ✗ | ✗ | ✗ | **✓** |
-| Auto `Content-Type` resolution | ✗ | ✗ | ✗ | **✓** |
-| Stripe-style idempotency | ✗ | ✗ | ✗ | **✓** |
-| Browser-like headers (WAF bypass) | ✗ | ✗ | ✗ | **✓** |
-| Response chaining | Scripts | Plugin | Limited | **One-click** |
-| Template engine built-in | ✗ | ✗ | ✗ | **✓** |
-| Native desktop (not Electron) | ✗ | ✗ | ✗ | **✓** |
-| Offline / no account required | ✗ | ✗ | ✓ | **✓** |
+```bash
+git clone https://github.com/pskuntal1248/http-client-intend.git
+cd http-client-intend
+./mvnw spring-boot:run
+```
 
----
+### Send your first request
 
-## Next Steps
+- Method: `GET`
+- URL: `https://jsonplaceholder.typicode.com/posts/1`
+- Click **SEND**
 
-<Cards>
-  <Card title="Download Intend" href="/docs/getting-started/download">
-    Get the latest build for macOS, Windows, or Linux.
-  </Card>
-  <Card title="Quick Start" href="/docs/quick-start">
-    Send your first intent-driven request in under two minutes.
-  </Card>
-</Cards>
+### Inspect what was auto-resolved
+
+Open the **Headers** tab in response details and verify the generated browser-like and protocol headers.
+</Steps>
+
+## Native Installers
+
+Download from [GitHub Releases](https://github.com/pskuntal1248/http-client-intend/releases).
+
+| Platform | Package | Install flow |
+|---|---|---|
+| macOS | `Intend-2.0.0.dmg` | Open DMG, drag app to Applications |
+| Windows | `Intend-2.0.0.msi` | Run MSI wizard |
+| Ubuntu or Debian | `intend_2.0.0-1_amd64.deb` | `sudo dpkg -i intend_*.deb` |
+| Fedora or RHEL | `intend-2.0.0-1.x86_64.rpm` | `sudo rpm -i intend-*.rpm` |
+
+<Callout type="default">
+Installers bundle a JDK, so end users do not need a separate Java install.
+</Callout>
+
+## Request Examples
+
+<Tabs items={["Simple GET", "POST with auth + variables"]}>
+  <Tabs.Tab>
+
+```http
+GET https://jsonplaceholder.typicode.com/posts/1
+```
+
+Expected summary:
+
+```text
+200 Success  |  142 ms  |  1.3 KB
+```
+
+  </Tabs.Tab>
+  <Tabs.Tab>
+
+```http
+POST https://jsonplaceholder.typicode.com/posts
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "title": "{{randomUser}} post",
+  "body": "Created at {{timestamp}}",
+  "userId": {{randomInt}}
+}
+```
+
+Automatically resolved:
+
+| Concern | Intend behavior |
+|---|---|
+| Payload typing | Detects JSON and sets `Content-Type` |
+| Auth | Generates `Authorization` from selected strategy |
+| Idempotency | Adds `Idempotency-Key` and `X-Request-ID` |
+| Variables | Resolves built-ins and captured values |
+
+  </Tabs.Tab>
+</Tabs>
+
+## Continue Reading
+
+- [Installation](/docs/installation)
+- [Zero-Config Headers](/docs/features/zero-config-headers)
+- [Template Variables](/docs/features/template-variables)
+- [Response Chaining](/docs/features/response-chaining)
+- [Environments](/docs/features/environments)
+- [Idempotency and Retry](/docs/features/idempotency)
+- [API Reference](/docs/api-reference)

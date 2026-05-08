@@ -1,100 +1,89 @@
 # Troubleshooting
 
 <Callout type="info">
-Quick triage guide — find the symptom, run the check, apply the fix.
+Use this page as a quick triage guide: identify the symptom, run the suggested check, apply the fix.
 </Callout>
 
 ## Fast Triage
 
 <Steps>
-
 ### Confirm runtime prerequisites
 
-Verify Java 17+ and `jpackage` are on PATH.
-
-```bash
-java -version
-jpackage --version
-```
+Verify Java and packaging tools are available on your machine.
 
 ### Reproduce with a minimal request
 
-Try a simple request to rule out project-specific issues:
+Use a known URL such as `https://jsonplaceholder.typicode.com/posts/1`.
 
-```
-GET https://jsonplaceholder.typicode.com/posts/1
-```
+### Inspect local data files
 
-### Inspect local data
-
-Check `~/.intend/` for file corruption or permission issues.
-
-```bash
-ls -la ~/.intend/
-```
-
+Check files under `~/.intend/` for corruption or permission issues.
 </Steps>
 
-## Build & Packaging Issues
+## Build and Packaging
 
-| Symptom | Cause | Fix |
-| --- | --- | --- |
-| `jpackage` not found | JDK 17+ not on PATH | Install JDK 17+ and update PATH |
-| Windows MSI build fails | WiX Toolset missing | Install WiX Toolset 3.x |
-| `InaccessibleObjectException` | Missing JVM flags | `--add-opens` flags are configured in `pom.xml` |
-| App icon not showing (macOS) | Icon file missing | Verify `image.icns` exists in project root |
+| Symptom | Check | Fix |
+|---|---|---|
+| `jpackage` not found | `java -version` and `which jpackage` | Install JDK 17+ and update `PATH` |
+| Windows MSI build fails | `where candle` / `where light` | Install [WiX Toolset 3.x](https://wixtoolset.org/) |
+| `InaccessibleObjectException` | Review JVM args in startup command | Include configured `--add-opens` flags from project setup |
+| App icon missing on macOS | Verify icon file path | Ensure `image.icns` exists in project root |
 
-## Runtime Errors
+## Runtime and Request Errors
 
-| Symptom | Cause | Fix |
-| --- | --- | --- |
-| Connection refused | Server down or wrong port | Start target server, verify URL and port |
-| Unknown host | DNS typo or no network | Check hostname spelling and connectivity |
-| Request timed out | Server unresponsive | Default timeout is 30s — check server health |
-| SSL/TLS error | Certificate issue | Verify server cert, check JDK trust store |
-| `{{variable}}` not resolved | Variable not captured | Run capture request first, check key spelling |
-| History not loading | Corrupted `history.json` | Validate JSON or delete `~/.intend/history.json` |
-| Settings not saving | Permission issue | Fix permissions on `~/.intend/` directory |
+| Symptom | Likely cause | Resolution |
+|---|---|---|
+| `Connection refused` | Target service down or wrong port | Start target service and verify URL |
+| `Unknown host` | DNS typo or network issue | Validate hostname and connectivity |
+| `{{variable}}` not resolved | Variable not captured yet | Re-run capture request and check key spelling |
+| History panel empty | Corrupted or unreadable history file | Validate or remove `~/.intend/history.json` |
+| Settings not persisted | No write permission in data directory | Fix ownership/permissions on `~/.intend/` |
 
 ## Data Directory Reference
 
-```
+```text
 ~/.intend/
-├── history.json
-├── intend-config.json
-└── intend-state.properties
+|- history.json
+|- intend-config.json
+`- intend-state.properties
 ```
 
 ## Recovery Commands
 
-<Tabs items={["Reset Everything", "Repair History"]}>
-<Tabs.Tab>
+<Tabs items={["Reset all local state", "Repair history only"]}>
+	<Tabs.Tab>
+
 ```bash
 rm -rf ~/.intend/
 ```
 
 Intend recreates defaults on next launch.
-</Tabs.Tab>
-<Tabs.Tab>
+
+	</Tabs.Tab>
+	<Tabs.Tab>
+
 ```bash
+# validate JSON shape
 python3 -m json.tool ~/.intend/history.json
-# if invalid:
+
+# if invalid, remove only history
 rm ~/.intend/history.json
 ```
-</Tabs.Tab>
+
+	</Tabs.Tab>
 </Tabs>
 
 ## Performance Baseline
 
-| Metric | Expected |
-| --- | --- |
-| GUI startup | &lt; 3 seconds |
-| Template resolution | &lt; 1ms per request |
-| Header pipeline | &lt; 5ms per request |
-| Connect timeout | 10 seconds |
-| Request timeout | 30 seconds |
-| Streaming threshold | &gt; 10 MB response |
+| Metric | Expected range |
+|---|---|
+| GUI startup | under 3s on warm system |
+| Template resolution | under 1ms per request |
+| Header pipeline | under 5ms per request |
+| Connect timeout | 10s |
+| Request timeout | 30s |
+| Streaming threshold | over 10MB response payload |
 
 <Callout type="warning">
-If startup slows over time, trim `~/.intend/history.json`.
+If startup slows down over time, archive or trim `history.json` to reduce load cost during boot.
 </Callout>
