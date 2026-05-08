@@ -25,7 +25,7 @@ import java.util.function.Consumer;
 public final class UpdateChecker {
 
     /** Current app version — keep in sync with pom.xml. */
-    static final String CURRENT_VERSION = "1.0.0";
+    static final String CURRENT_VERSION = "2.0.0";
 
     private static final String VERSION_URL =
             "https://raw.githubusercontent.com/pskuntal1248/http-client-intend/main/version.json";
@@ -38,6 +38,8 @@ public final class UpdateChecker {
      * @param onUpdateAvailable called on the FX thread with (latestVersion, downloadUrl)
      */
     public static void checkInBackground(BiConsumer<String, String> onUpdateAvailable) {
+        if (!isPackaged()) return;
+
         Thread thread = new Thread(() -> {
             try {
                 HttpClient client = HttpClient.newBuilder()
@@ -109,27 +111,34 @@ public final class UpdateChecker {
                 long contentLength = response.headers()
                         .firstValueAsLong("content-length").orElse(-1);
 
-                try (InputStream in = response.body()) {
+                try (InputStream in = response.body();
+                     var out = Files.newOutputStream(installerPath)) {
                     byte[] buffer = new byte[8192];
                     long totalRead = 0;
                     int bytesRead;
-                    var out = Files.newOutputStream(installerPath);
+                    int[] lastPercent = {-1};
+                    long[] lastMB = {-1};
 
                     while ((bytesRead = in.read(buffer)) != -1) {
                         out.write(buffer, 0, bytesRead);
                         totalRead += bytesRead;
                         if (contentLength > 0) {
                             int percent = (int) (totalRead * 100 / contentLength);
-                            long totalMB = totalRead / (1024 * 1024);
-                            Platform.runLater(() -> onProgress.accept(
-                                    "Downloading... " + percent + "% (" + totalMB + " MB)"));
+                            if (percent > lastPercent[0]) {
+                                lastPercent[0] = percent;
+                                long mb = totalRead / (1024 * 1024);
+                                Platform.runLater(() -> onProgress.accept(
+                                        "Downloading " + percent + "% (" + mb + " MB)"));
+                            }
                         } else {
-                            long totalMB = totalRead / (1024 * 1024);
-                            Platform.runLater(() -> onProgress.accept(
-                                    "Downloading... " + totalMB + " MB"));
+                            long mb = totalRead / (1024 * 1024);
+                            if (mb > lastMB[0]) {
+                                lastMB[0] = mb;
+                                Platform.runLater(() -> onProgress.accept(
+                                        "Downloading " + mb + " MB"));
+                            }
                         }
                     }
-                    out.close();
                 }
 
                 Platform.runLater(() -> onProgress.accept("Installing..."));
@@ -214,6 +223,16 @@ public final class UpdateChecker {
             return root.get("download").asText();
         }
         return "https://github.com/pskuntal1248/http-client-intend/releases/latest";
+    }
+
+    /**
+     * Returns {@code true} only when running from a packaged JAR/app bundle —
+     * not from an IDE or {@code mvn spring-boot:run}.
+     */
+    private static boolean isPackaged() {
+        String protocol = UpdateChecker.class.getResource(
+                UpdateChecker.class.getSimpleName() + ".class").getProtocol();
+        return "jar".equals(protocol);
     }
 
     private static int[] parseVersion(String v) {
