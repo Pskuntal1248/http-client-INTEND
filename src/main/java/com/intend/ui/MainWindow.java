@@ -544,22 +544,51 @@ public class MainWindow extends Application {
         });
 
         // -- Update banner (hidden by default) --
+        Label updateDot = new Label("\u2022");
+        updateDot.setStyle("-fx-text-fill: #FF3B3B; -fx-font-size: 16px;");
+
         Label updateLabel = new Label();
-        updateLabel.setStyle("-fx-text-fill: #E6E6E6; -fx-font-size: 12px;");
-        Button updateNowBtn = new Button("Update Now");
-        updateNowBtn.setStyle("-fx-background-color: #4ADE80; -fx-text-fill: #000000; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 4; -fx-padding: 4 14; -fx-cursor: hand;");
+        updateLabel.setStyle("-fx-text-fill: #B3B3B3; -fx-font-size: 12px;");
+
+        Label versionBadge = new Label();
+        versionBadge.setStyle("-fx-text-fill: #E6E6E6; -fx-font-size: 11px; -fx-font-weight: 600; "
+                + "-fx-background-color: #252525; -fx-background-radius: 4; -fx-padding: 2 8; "
+                + "-fx-border-color: #3A3A3A; -fx-border-radius: 4;");
+
+        String updateBtnBase = "-fx-text-fill: #FFFFFF; -fx-font-size: 11px; -fx-font-weight: 600; "
+                + "-fx-background-radius: 4; -fx-padding: 4 14; -fx-cursor: hand; "
+                + "-fx-border-color: transparent; -fx-min-height: 24;";
+        Button updateNowBtn = new Button("Update");
+        updateNowBtn.setStyle("-fx-background-color: #FF3B3B; " + updateBtnBase);
+        updateNowBtn.setOnMouseEntered(e -> {
+            if (!updateNowBtn.isDisabled())
+                updateNowBtn.setStyle("-fx-background-color: #E62E2E; " + updateBtnBase);
+        });
+        updateNowBtn.setOnMouseExited(e -> {
+            if (!updateNowBtn.isDisabled())
+                updateNowBtn.setStyle("-fx-background-color: #FF3B3B; " + updateBtnBase);
+        });
+
         Label progressLabel = new Label();
-        progressLabel.setStyle("-fx-text-fill: #B3B3B3; -fx-font-size: 11px;");
+        progressLabel.setStyle("-fx-text-fill: #808080; -fx-font-size: 11px;");
         progressLabel.setVisible(false);
         progressLabel.setManaged(false);
-        Button dismissBtn = new Button("✕");
-        dismissBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #808080; -fx-font-size: 11px; -fx-cursor: hand; -fx-padding: 2 6;");
+
+        String dismissBase = "-fx-background-color: transparent; -fx-font-size: 11px; "
+                + "-fx-cursor: hand; -fx-padding: 2 8;";
+        Button dismissBtn = new Button("\u2715");
+        dismissBtn.setStyle(dismissBase + " -fx-text-fill: #606060;");
+        dismissBtn.setOnMouseEntered(e -> dismissBtn.setStyle(dismissBase + " -fx-text-fill: #E6E6E6;"));
+        dismissBtn.setOnMouseExited(e -> dismissBtn.setStyle(dismissBase + " -fx-text-fill: #606060;"));
+
         Region bannerSpacer = new Region();
         HBox.setHgrow(bannerSpacer, Priority.ALWAYS);
-        HBox updateBanner = new HBox(8, updateLabel, updateNowBtn, progressLabel, bannerSpacer, dismissBtn);
+        HBox updateBanner = new HBox(8, updateDot, updateLabel, versionBadge, updateNowBtn,
+                progressLabel, bannerSpacer, dismissBtn);
         updateBanner.setAlignment(Pos.CENTER_LEFT);
-        updateBanner.setPadding(new Insets(6, 12, 6, 12));
-        updateBanner.setStyle("-fx-background-color: #1A3A2A; -fx-border-color: #2D5A3D; -fx-border-width: 0 0 1 0;");
+        updateBanner.setPadding(new Insets(6, 16, 6, 16));
+        updateBanner.setStyle("-fx-background-color: #1A1A1A; -fx-border-color: #252525; "
+                + "-fx-border-width: 0 0 1 0;");
         updateBanner.setVisible(false);
         updateBanner.setManaged(false);
 
@@ -588,12 +617,17 @@ public class MainWindow extends Application {
 
         // Check for updates after UI is shown
         UpdateChecker.checkInBackground((latestVersion, downloadUrl) -> {
-            updateLabel.setText("🚀 Intend v" + latestVersion + " is available!");
+            updateLabel.setText("New version available");
+            versionBadge.setText("v" + latestVersion);
             updateNowBtn.setOnAction(ev -> {
                 updateNowBtn.setDisable(true);
                 updateNowBtn.setText("Updating...");
+                updateNowBtn.setStyle("-fx-background-color: #252525; -fx-text-fill: #808080; "
+                        + "-fx-font-size: 11px; -fx-font-weight: 600; -fx-background-radius: 4; "
+                        + "-fx-padding: 4 14; -fx-border-color: #3A3A3A; -fx-min-height: 24;");
                 progressLabel.setVisible(true);
                 progressLabel.setManaged(true);
+                progressLabel.setStyle("-fx-text-fill: #808080; -fx-font-size: 11px;");
                 dismissBtn.setDisable(true);
                 UpdateChecker.downloadAndInstall(
                     downloadUrl,
@@ -602,6 +636,7 @@ public class MainWindow extends Application {
                         progressLabel.setText(error);
                         progressLabel.setStyle("-fx-text-fill: #FF3B3B; -fx-font-size: 11px;");
                         updateNowBtn.setText("Retry");
+                        updateNowBtn.setStyle("-fx-background-color: #FF3B3B; " + updateBtnBase);
                         updateNowBtn.setDisable(false);
                         dismissBtn.setDisable(false);
                     }
@@ -747,24 +782,51 @@ public class MainWindow extends Application {
 
         ConfigRepository.ConfigData current = intendService.getConfigRepository().get();
 
+        // -- DEV fields --
         TextField devUrlField = new TextField(current.devUrl);
         PasswordField devKeyField = new PasswordField();
         devKeyField.setText(current.devKey);
+        PasswordField devBearerField = new PasswordField();
+        devBearerField.setText(current.devBearerToken);
+        TextField devBasicUserField = new TextField(current.devBasicUser);
+        PasswordField devBasicPassField = new PasswordField();
+        devBasicPassField.setText(current.devBasicPass);
 
+        // -- PROD fields --
         TextField prodUrlField = new TextField(current.prodUrl);
         PasswordField prodKeyField = new PasswordField();
         prodKeyField.setText(current.prodKey);
+        PasswordField prodBearerField = new PasswordField();
+        prodBearerField.setText(current.prodBearerToken);
+        TextField prodBasicUserField = new TextField(current.prodBasicUser);
+        PasswordField prodBasicPassField = new PasswordField();
+        prodBasicPassField.setText(current.prodBasicPass);
 
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20));
+        // -- DEV section --
+        Label devHeader = new Label("DEV ENVIRONMENT");
+        devHeader.setStyle("-fx-text-fill: #4ADE80; -fx-font-size: 12px; -fx-font-weight: 700; -fx-letter-spacing: 1;");
 
-        grid.addRow(0, new Label("DEV URL:"), devUrlField);
-        grid.addRow(1, new Label("DEV Key:"), devKeyField);
-        grid.addRow(2, new Separator());
-        grid.addRow(3, new Label("PROD URL:"), prodUrlField);
-        grid.addRow(4, new Label("PROD Key:"), prodKeyField);
+        GridPane devGrid = new GridPane();
+        devGrid.setHgap(10);
+        devGrid.setVgap(8);
+        devGrid.addRow(0, new Label("Base URL:"), devUrlField);
+        devGrid.addRow(1, new Label("API Key:"), devKeyField);
+        devGrid.addRow(2, new Label("Bearer Token:"), devBearerField);
+        devGrid.addRow(3, new Label("Basic Username:"), devBasicUserField);
+        devGrid.addRow(4, new Label("Basic Password:"), devBasicPassField);
+
+        // -- PROD section --
+        Label prodHeader = new Label("PROD ENVIRONMENT");
+        prodHeader.setStyle("-fx-text-fill: #60A5FA; -fx-font-size: 12px; -fx-font-weight: 700; -fx-letter-spacing: 1;");
+
+        GridPane prodGrid = new GridPane();
+        prodGrid.setHgap(10);
+        prodGrid.setVgap(8);
+        prodGrid.addRow(0, new Label("Base URL:"), prodUrlField);
+        prodGrid.addRow(1, new Label("API Key:"), prodKeyField);
+        prodGrid.addRow(2, new Label("Bearer Token:"), prodBearerField);
+        prodGrid.addRow(3, new Label("Basic Username:"), prodBasicUserField);
+        prodGrid.addRow(4, new Label("Basic Password:"), prodBasicPassField);
 
         Button saveBtn = new Button("Save Configuration");
         saveBtn.setMaxWidth(Double.MAX_VALUE);
@@ -773,18 +835,31 @@ public class MainWindow extends Application {
             intendService.getConfigRepository().save(
                 devUrlField.getText(),
                 devKeyField.getText(),
-                "", "", "",
+                devBearerField.getText(),
+                devBasicUserField.getText(),
+                devBasicPassField.getText(),
                 prodUrlField.getText(),
                 prodKeyField.getText(),
-                "", "", ""
+                prodBearerField.getText(),
+                prodBasicUserField.getText(),
+                prodBasicPassField.getText()
             );
             settingsStage.close();
         });
 
-        VBox root = new VBox(10, grid, saveBtn);
-        root.setPadding(new Insets(10));
+        VBox content = new VBox(12,
+            devHeader, devGrid,
+            new Separator(),
+            prodHeader, prodGrid,
+            saveBtn
+        );
+        content.setPadding(new Insets(20));
 
-        Scene settingsScene = new Scene(root, 450, 280);
+        ScrollPane scrollPane = new ScrollPane(content);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background: #1E1E1E; -fx-background-color: #1E1E1E;");
+
+        Scene settingsScene = new Scene(scrollPane, 480, 460);
         settingsScene.getStylesheets().add(getClass().getResource("/styles/intend-theme.css").toExternalForm());
         settingsStage.setScene(settingsScene);
         settingsStage.show();
