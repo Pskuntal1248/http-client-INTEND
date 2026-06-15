@@ -6,6 +6,7 @@ import "@fontsource/space-grotesk/500.css";
 import "@fontsource/space-grotesk/600.css";
 import "@fontsource/space-grotesk/700.css";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
@@ -30,8 +31,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
+        {/* Prevent flash of wrong theme */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('intend-theme');if(t==='light'){document.documentElement.classList.remove('dark')}else{document.documentElement.classList.add('dark')}}catch(e){}})()`,
+          }}
+        />
         {/* Umami Analytics — privacy-friendly, no cookies */}
         {/* To enable: sign up at https://cloud.umami.is (free tier) or self-host, */}
         {/* then replace the data-website-id and src below and uncomment. */}
@@ -44,9 +51,9 @@ export default function RootLayout({
         */}
       </head>
       <body
-        className={`${jetbrainsMono.variable} ${playfairDisplay.variable} font-sans antialiased bg-background text-foreground`}
+        className={`${jetbrainsMono.variable} ${playfairDisplay.variable} font-sans antialiased bg-background text-foreground transition-colors duration-300`}
       >
-        {children}
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );
