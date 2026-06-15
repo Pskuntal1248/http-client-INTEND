@@ -18,6 +18,8 @@ import {
 import { GlowingEffect } from "@/components/ui/glowing-effect";
 import PlugConnectedIcon from "@/components/ui/plug-connected-icon";
 import Link from "next/link";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { useTheme } from "@/components/theme-provider";
 
 /* ─── GITHUB STARS ─── */
 
@@ -38,7 +40,7 @@ function GitHubStars() {
       href="https://github.com/pskuntal1248/http-client-intend"
       target="_blank"
       rel="noopener noreferrer"
-      className="hidden md:inline-flex items-center gap-1.5 rounded-full border border-neutral-800 bg-neutral-900/60 px-3 py-1 text-xs text-neutral-400 transition hover:border-neutral-700 hover:text-neutral-300"
+      className="hidden md:inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/60 px-3 py-1 text-xs text-muted-foreground transition hover:border-primary/30 hover:text-foreground"
     >
       <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
         <path d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z" />
@@ -52,27 +54,27 @@ function Nav() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-neutral-800/80 bg-black/70 backdrop-blur-xl">
+    <nav className="sticky top-0 z-50 border-b border-border/80 bg-background/70 backdrop-blur-xl transition-colors duration-300">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
         {/* Logo */}
         <div className="flex items-center gap-2.5">
           <img src="/favicon.png" alt="Intend" className="h-7 w-auto" />
-          <span className="text-base font-bold text-white"></span>
+          <span className="text-base font-bold text-foreground"></span>
         </div>
 
         {/* Desktop links */}
-        <div className="hidden items-center gap-6 text-sm text-neutral-500 md:flex">
-          <Link href="#features" className="transition hover:text-neutral-300">
+        <div className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
+          <Link href="#features" className="transition hover:text-foreground">
             Features
           </Link>
-          <Link href="/docs" className="transition hover:text-neutral-300">
+          <Link href="/docs" className="transition hover:text-foreground">
             Docs
           </Link>
           <a
             href="https://github.com/pskuntal1248/http-client-intend"
             target="_blank"
             rel="noopener noreferrer"
-            className="transition hover:text-neutral-300"
+            className="transition hover:text-foreground"
           >
             GitHub
           </a>
@@ -81,6 +83,7 @@ function Nav() {
         {/* Right side */}
         <div className="flex items-center gap-3">
           <GitHubStars />
+          <ThemeToggle />
           <Link
             href="/download"
             className="rounded-lg bg-red-600 px-4 py-1.5 text-sm font-medium text-white transition hover:-translate-y-0.5 hover:bg-red-500"
@@ -89,7 +92,7 @@ function Nav() {
           </Link>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden rounded-lg border border-neutral-800 p-1.5 text-neutral-400 transition hover:bg-neutral-900 hover:text-white"
+            className="md:hidden rounded-lg border border-border p-1.5 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
             aria-label="Toggle menu"
           >
             {mobileOpen ? (
@@ -109,20 +112,20 @@ function Nav() {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="overflow-hidden border-t border-neutral-800/60 md:hidden"
+            className="overflow-hidden border-t border-border/60 md:hidden"
           >
             <div className="mx-auto flex max-w-6xl flex-col gap-1 px-6 py-3">
               <Link
                 href="#features"
                 onClick={() => setMobileOpen(false)}
-                className="rounded-lg px-3 py-2.5 text-sm text-neutral-400 transition hover:bg-neutral-900 hover:text-white"
+                className="rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition hover:bg-secondary hover:text-foreground"
               >
                 Features
               </Link>
               <Link
                 href="/docs"
                 onClick={() => setMobileOpen(false)}
-                className="rounded-lg px-3 py-2.5 text-sm text-neutral-400 transition hover:bg-neutral-900 hover:text-white"
+                className="rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition hover:bg-secondary hover:text-foreground"
               >
                 Docs
               </Link>
@@ -130,7 +133,7 @@ function Nav() {
                 href="https://github.com/pskuntal1248/http-client-intend"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-lg px-3 py-2.5 text-sm text-neutral-400 transition hover:bg-neutral-900 hover:text-white"
+                className="rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition hover:bg-secondary hover:text-foreground"
               >
                 GitHub
               </a>
@@ -165,7 +168,7 @@ function Hero() {
   return (
     <section className="relative mx-auto max-w-6xl">
       <div className="px-6 py-14 sm:py-20 md:py-24">
-        <h1 className="mx-auto max-w-3xl text-center text-2xl font-bold leading-tight text-neutral-300 sm:text-3xl md:text-4xl lg:text-6xl">
+        <h1 className="mx-auto max-w-3xl text-center text-2xl font-bold leading-tight text-foreground/80 dark:text-neutral-300 sm:text-3xl md:text-4xl lg:text-6xl">
           {headlineWords.map((item, i) => (
             <motion.span
               key={i}
@@ -184,7 +187,7 @@ function Hero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3, delay: 0.7 }}
-          className="mx-auto mt-5 max-w-lg text-center text-sm text-neutral-500 sm:text-base"
+          className="mx-auto mt-5 max-w-lg text-center text-sm text-muted-foreground sm:text-base"
         >
           Select a method, pick auth from a dropdown, type your URL — Intend
           resolves every HTTP header automatically. Native JavaFX desktop app.
@@ -208,7 +211,7 @@ function Hero() {
             href="https://github.com/pskuntal1248/http-client-intend"
             target="_blank"
             rel="noopener noreferrer"
-            className="w-44 rounded-lg border border-neutral-700 px-6 py-2.5 text-center text-sm font-medium text-white transition hover:-translate-y-0.5 hover:bg-neutral-900"
+            className="w-44 rounded-lg border border-border px-6 py-2.5 text-center text-sm font-medium text-foreground transition hover:-translate-y-0.5 hover:bg-secondary"
           >
             <Github className="mr-2 inline h-4 w-4" />
             Source
@@ -221,10 +224,17 @@ function Hero() {
           transition={{ duration: 0.4, delay: 1.1 }}
           className="mx-auto mt-12 max-w-[74rem] sm:mt-16"
         >
+          {/* Dark mode hero image */}
           <img
             src="/hero-ui.png"
-            alt="Intend workspace"
-            className="w-full rounded-xl border border-neutral-800/70 shadow-2xl"
+            alt="Intend workspace — dark"
+            className="hidden dark:block w-full rounded-xl border border-border/70 shadow-2xl"
+          />
+          {/* Light mode hero image */}
+          <img
+            src="/hero-ui-light.png"
+            alt="Intend workspace — light"
+            className="block dark:hidden w-full rounded-xl border border-border/70 shadow-2xl shadow-neutral-300/40"
           />
         </motion.div>
       </div>
@@ -280,10 +290,10 @@ function Features() {
           <p className="text-sm font-medium text-red-500/90 tracking-wide">
             Features
           </p>
-          <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+          <h2 className="mt-2 text-2xl font-bold text-foreground sm:text-3xl">
             Everything you need to test APIs.
             <br />
-            <span className="text-neutral-500">Nothing you don&apos;t.</span>
+            <span className="text-muted-foreground">Nothing you don&apos;t.</span>
           </h2>
         </motion.div>
 
@@ -299,23 +309,23 @@ function Features() {
               key={f.title}
               className={`list-none ${f.cardClass}`}
             >
-              <div className="relative h-full rounded-2xl border border-neutral-800 p-2">
+              <div className="relative h-full rounded-2xl border border-border p-2">
                 <GlowingEffect
                   spread={40}
                   glow={true}
                   proximity={64}
                   inactiveZone={0.01}
                 />
-                <div className="relative flex h-full flex-col gap-3 overflow-hidden rounded-xl border border-neutral-800/50 bg-neutral-950 p-4 shadow-[0px_0px_27px_0px_#1a1a1a]">
+                <div className="relative flex h-full flex-col gap-3 overflow-hidden rounded-xl border border-border/50 bg-card p-4 shadow-[0px_0px_27px_0px_rgba(0,0,0,0.05)] dark:shadow-[0px_0px_27px_0px_#1a1a1a] transition-colors duration-300">
                   <div className="flex flex-col gap-3">
-                    <div className="w-fit rounded-lg border border-neutral-700 p-2">
-                      <PlugConnectedIcon size={16} className="text-neutral-400" />
+                    <div className="w-fit rounded-lg border border-border p-2">
+                      <PlugConnectedIcon size={16} className="text-muted-foreground" />
                     </div>
                     <div className="space-y-2">
-                      <h3 className="text-lg font-semibold text-white">
+                      <h3 className="text-lg font-semibold text-foreground">
                         {f.title}
                       </h3>
-                      <p className="text-sm leading-relaxed text-neutral-400">
+                      <p className="text-sm leading-relaxed text-muted-foreground">
                         {f.desc}
                       </p>
                     </div>
@@ -352,7 +362,7 @@ const pipeline = [
 
 function Pipeline() {
   return (
-    <section className="border-y border-neutral-800/80 py-16 sm:py-24">
+    <section className="border-y border-border/80 py-16 sm:py-24 transition-colors duration-300">
       <div className="mx-auto max-w-6xl px-6">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -363,7 +373,7 @@ function Pipeline() {
           <p className="text-sm font-medium text-red-500/90 tracking-wide">
             How it works
           </p>
-          <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+          <h2 className="mt-2 text-2xl font-bold text-foreground sm:text-3xl">
             From intent to response in three steps.
           </h2>
         </motion.div>
@@ -376,19 +386,19 @@ function Pipeline() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.3, delay: i * 0.12 }}
-              className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5"
+              className="rounded-2xl border border-border bg-card p-5 transition-colors duration-300"
             >
-              <span className="font-mono text-xs text-neutral-600">
+              <span className="font-mono text-xs text-muted-foreground/60">
                 {step.label}
               </span>
-              <h3 className="mt-3 text-lg font-semibold text-white">
+              <h3 className="mt-3 text-lg font-semibold text-foreground">
                 {step.title}
               </h3>
               <ul className="mt-4 space-y-2">
                 {step.items.map((item) => (
                   <li
                     key={item}
-                    className="flex items-start gap-2 text-sm text-neutral-500"
+                    className="flex items-start gap-2 text-sm text-muted-foreground"
                   >
                     <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-red-500/60" />
                     {item}
@@ -419,21 +429,21 @@ function QuickStart() {
             <p className="text-sm font-medium text-red-500/90 tracking-wide">
               Quick start
             </p>
-            <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+            <h2 className="mt-2 text-2xl font-bold text-foreground sm:text-3xl">
               Two ways to run.
             </h2>
-            <p className="mt-4 text-sm leading-relaxed text-neutral-500">
-              <strong className="text-neutral-400">Fastest:</strong> grab a native installer from the{" "}
-              <Link href="/download" className="underline decoration-neutral-700 underline-offset-4 transition hover:text-white hover:decoration-neutral-500">download page</Link>
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+              <strong className="text-foreground/70">Fastest:</strong> grab a native installer from the{" "}
+              <Link href="/download" className="underline decoration-border underline-offset-4 transition hover:text-foreground hover:decoration-muted-foreground">download page</Link>
               {" "}— JDK is bundled, nothing else to install.
               <br /><br />
-              <strong className="text-neutral-400">From source:</strong> clone the repo and use the Maven wrapper.
-              Run <code className="rounded bg-neutral-800/80 px-1.5 py-0.5 text-xs text-neutral-300">./mvnw spring-boot:run</code>{" "}
+              <strong className="text-foreground/70">From source:</strong> clone the repo and use the Maven wrapper.
+              Run <code className="rounded bg-secondary/80 px-1.5 py-0.5 text-xs text-foreground/80">./mvnw spring-boot:run</code>{" "}
               to start the full app (backend + JavaFX UI), or{" "}
-              <code className="rounded bg-neutral-800/80 px-1.5 py-0.5 text-xs text-neutral-300">./mvnw javafx:run</code>{" "}
+              <code className="rounded bg-secondary/80 px-1.5 py-0.5 text-xs text-foreground/80">./mvnw javafx:run</code>{" "}
               to launch the JavaFX workspace directly.
             </p>
-            <div className="mt-8 space-y-3 text-sm text-neutral-500">
+            <div className="mt-8 space-y-3 text-sm text-muted-foreground">
               <div className="flex items-center gap-2.5">
                 <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500/70" />
                 JDK 17+ required (bundled in native installers)
@@ -453,7 +463,7 @@ function QuickStart() {
             </div>
             <Link
               href="/docs/installation"
-              className="mt-6 inline-block text-sm text-neutral-400 underline decoration-neutral-700 underline-offset-4 transition hover:text-white hover:decoration-neutral-500"
+              className="mt-6 inline-block text-sm text-muted-foreground underline decoration-border underline-offset-4 transition hover:text-foreground hover:decoration-muted-foreground"
             >
               Full installation guide →
             </Link>
@@ -469,28 +479,28 @@ function QuickStart() {
               <TypingAnimation>
                 $ git clone https://github.com/pskuntal1248/http-client-intend.git
               </TypingAnimation>
-              <AnimatedSpan delay={2200} className="text-neutral-600">
+              <AnimatedSpan delay={2200} className="text-muted-foreground/60">
                 Cloning into &apos;http-client-intend&apos;...
               </AnimatedSpan>
-              <AnimatedSpan delay={3200} className="text-neutral-400">
+              <AnimatedSpan delay={3200} className="text-muted-foreground">
                 ✓ done
               </AnimatedSpan>
               <TypingAnimation delay={3800}>
                 $ cd http-client-intend
               </TypingAnimation>
-              <AnimatedSpan delay={4600} className="text-neutral-600">
+              <AnimatedSpan delay={4600} className="text-muted-foreground/60">
                 # Option A — full app (Spring Boot + JavaFX)
               </AnimatedSpan>
               <TypingAnimation delay={5200}>
                 $ ./mvnw spring-boot:run
               </TypingAnimation>
-              <AnimatedSpan delay={6400} className="text-neutral-600">
+              <AnimatedSpan delay={6400} className="text-muted-foreground/60">
                 :: Spring Boot :: (v3.2.2)
               </AnimatedSpan>
               <AnimatedSpan delay={6800} className="text-emerald-500/80">
                 ✓ Intend workspace ready — window opened
               </AnimatedSpan>
-              <AnimatedSpan delay={7800} className="text-neutral-600">
+              <AnimatedSpan delay={7800} className="text-muted-foreground/60">
                 {"\n"}# Option B — JavaFX UI only
               </AnimatedSpan>
               <TypingAnimation delay={8400}>
@@ -522,7 +532,7 @@ const rows = [
 
 function Comparison() {
   return (
-    <section className="border-t border-neutral-800/80 py-16 sm:py-24">
+    <section className="border-t border-border/80 py-16 sm:py-24 transition-colors duration-300">
       <div className="mx-auto max-w-3xl px-6">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -534,7 +544,7 @@ function Comparison() {
           <p className="text-sm font-medium text-red-500/90 tracking-wide">
             Comparison
           </p>
-          <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+          <h2 className="mt-2 text-2xl font-bold text-foreground sm:text-3xl">
             How Intend stacks up.
           </h2>
         </motion.div>
@@ -544,20 +554,20 @@ function Comparison() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.4, delay: 0.15 }}
-          className="mt-10 overflow-hidden rounded-2xl border border-neutral-800"
+          className="mt-10 overflow-hidden rounded-2xl border border-border transition-colors duration-300"
         >
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[36rem]">
               <thead>
-                <tr className="border-b border-neutral-800 bg-neutral-950/50">
-                  <th className="px-5 py-3.5 text-left font-medium text-neutral-600" />
-                  <th className="w-24 px-4 py-3.5 text-center font-semibold text-white">
+                <tr className="border-b border-border bg-card/50">
+                  <th className="px-5 py-3.5 text-left font-medium text-muted-foreground" />
+                  <th className="w-24 px-4 py-3.5 text-center font-semibold text-foreground">
                     Intend
                   </th>
-                  <th className="w-24 px-4 py-3.5 text-center font-medium text-neutral-600">
+                  <th className="w-24 px-4 py-3.5 text-center font-medium text-muted-foreground">
                     Postman
                   </th>
-                  <th className="w-24 px-4 py-3.5 text-center font-medium text-neutral-600">
+                  <th className="w-24 px-4 py-3.5 text-center font-medium text-muted-foreground">
                     Insomnia
                   </th>
                 </tr>
@@ -566,21 +576,21 @@ function Comparison() {
                 {rows.map((r) => (
                   <tr
                     key={r.feat}
-                    className="border-b border-neutral-800/40 last:border-0"
+                    className="border-b border-border/40 last:border-0"
                   >
-                    <td className="px-5 py-3 text-neutral-500">{r.feat}</td>
+                    <td className="px-5 py-3 text-muted-foreground">{r.feat}</td>
                     <td className="px-4 py-3 text-center">
                       {r.intend ? (
                         <CheckCircle2 className="mx-auto h-4 w-4 text-emerald-500/80" />
                       ) : (
-                        <XCircle className="mx-auto h-4 w-4 text-neutral-800" />
+                        <XCircle className="mx-auto h-4 w-4 text-muted-foreground/30" />
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <XCircle className="mx-auto h-4 w-4 text-neutral-800" />
+                      <XCircle className="mx-auto h-4 w-4 text-muted-foreground/30" />
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <XCircle className="mx-auto h-4 w-4 text-neutral-800" />
+                      <XCircle className="mx-auto h-4 w-4 text-muted-foreground/30" />
                     </td>
                   </tr>
                 ))}
@@ -597,7 +607,7 @@ function Comparison() {
 
 function CTA() {
   return (
-    <section className="border-t border-neutral-800/80 py-16 sm:py-24">
+    <section className="border-t border-border/80 py-16 sm:py-24 transition-colors duration-300">
       <div className="mx-auto max-w-xl px-6 text-center">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -605,10 +615,10 @@ function CTA() {
           viewport={{ once: true }}
           transition={{ duration: 0.4 }}
         >
-          <h2 className="text-xl font-bold text-white sm:text-2xl">
+          <h2 className="text-xl font-bold text-foreground sm:text-2xl">
             Ready to send your first request?
           </h2>
-          <p className="mt-3 text-sm text-neutral-500 sm:text-base">
+          <p className="mt-3 text-sm text-muted-foreground sm:text-base">
             Download Intend and start testing APIs in seconds. No sign-up, no
             configuration, no bloat.
           </p>
@@ -621,7 +631,7 @@ function CTA() {
             </Link>
             <Link
               href="/docs"
-              className="w-48 rounded-lg border border-neutral-700 px-6 py-2.5 text-center text-sm font-medium text-white transition hover:-translate-y-0.5 hover:bg-neutral-900"
+              className="w-48 rounded-lg border border-border px-6 py-2.5 text-center text-sm font-medium text-foreground transition hover:-translate-y-0.5 hover:bg-secondary"
             >
               Read the docs
             </Link>
@@ -636,8 +646,8 @@ function CTA() {
 
 function Footer() {
   return (
-    <footer className="border-t border-neutral-800/80 py-8">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 text-sm text-neutral-600">
+    <footer className="border-t border-border/80 py-8 transition-colors duration-300">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 text-sm text-muted-foreground/60">
         <div className="flex items-center gap-2.5">
           <img src="/favicon.png" alt="Intend" className="h-5 w-auto opacity-50" />
           <span>
@@ -646,24 +656,24 @@ function Footer() {
               href="https://github.com/pskuntal1248"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-neutral-500 transition hover:text-white"
+              className="text-muted-foreground transition hover:text-foreground"
             >
               @pskuntal1248
             </a>
           </span>
         </div>
         <div className="flex items-center gap-5">
-          <Link href="/download" className="transition hover:text-neutral-400">
+          <Link href="/download" className="transition hover:text-muted-foreground">
             Download
           </Link>
-          <Link href="/docs" className="transition hover:text-neutral-400">
+          <Link href="/docs" className="transition hover:text-muted-foreground">
             Docs
           </Link>
           <a
             href="https://github.com/pskuntal1248/http-client-intend"
             target="_blank"
             rel="noopener noreferrer"
-            className="transition hover:text-neutral-400"
+            className="transition hover:text-muted-foreground"
           >
             GitHub
           </a>
@@ -677,7 +687,7 @@ function Footer() {
 
 export default function Page() {
   return (
-    <div className="dark bg-black text-white min-h-[100dvh] w-full selection:bg-neutral-800 selection:text-white">
+    <div className="bg-background text-foreground min-h-[100dvh] w-full selection:bg-secondary selection:text-foreground transition-colors duration-300">
       <Nav />
       <main>
         <Hero />
