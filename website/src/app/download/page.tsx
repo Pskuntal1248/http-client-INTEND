@@ -3,6 +3,7 @@
 import { Download, Github, ArrowLeft } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 /* ─── DOWNLOAD DATA ─── */
 
@@ -80,7 +81,7 @@ function OsIcon({ slot }: { slot: string }) {
   };
 
   return (
-    <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-neutral-800 bg-neutral-900/50 text-neutral-400">
+    <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-secondary/50 text-muted-foreground transition-colors duration-300">
       {icons[slot] ?? <Download className="h-7 w-7" />}
     </div>
   );
@@ -90,31 +91,33 @@ function OsIcon({ slot }: { slot: string }) {
 
 function Nav() {
   return (
-    <nav className="sticky top-0 z-50 border-b border-neutral-800/80 bg-black/70 backdrop-blur-xl">
+    <nav className="sticky top-0 z-50 border-b border-border/80 bg-background/70 backdrop-blur-xl transition-colors duration-300">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
         <div className="flex items-center gap-2.5">
           <img src="/logo.png" alt="Intend" className="h-7 w-auto" />
-          <Link href="/" className="text-base font-bold text-white">
+          <Link href="/" className="text-base font-bold text-foreground">
             Intend
           </Link>
         </div>
-        <div className="hidden items-center gap-6 text-sm text-neutral-500 md:flex">
-          <Link href="/#features" className="transition hover:text-neutral-300">
+        <div className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
+          <Link href="/#features" className="transition hover:text-foreground">
             Features
           </Link>
-          <Link href="/docs" className="transition hover:text-neutral-300">
+          <Link href="/docs" className="transition hover:text-foreground">
             Docs
           </Link>
           <a
             href="https://github.com/pskuntal1248/http-client-intend"
             target="_blank"
             rel="noopener noreferrer"
-            className="transition hover:text-neutral-300"
+            className="transition hover:text-foreground"
           >
             GitHub
           </a>
         </div>
-
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+        </div>
       </div>
     </nav>
   );
@@ -124,8 +127,8 @@ function Nav() {
 
 function Footer() {
   return (
-    <footer className="border-t border-neutral-800/80 py-8">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 text-sm text-neutral-600">
+    <footer className="border-t border-border/80 py-8 transition-colors duration-300">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 text-sm text-muted-foreground/60">
         <div className="flex items-center gap-2.5">
           <img
             src="/logo.png"
@@ -138,24 +141,24 @@ function Footer() {
               href="https://github.com/pskuntal1248"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-neutral-500 transition hover:text-white"
+              className="text-muted-foreground transition hover:text-foreground"
             >
               @pskuntal1248
             </a>
           </span>
         </div>
         <div className="flex items-center gap-5">
-          <Link href="/download" className="transition hover:text-neutral-400">
+          <Link href="/download" className="transition hover:text-muted-foreground">
             Download
           </Link>
-          <Link href="/docs" className="transition hover:text-neutral-400">
+          <Link href="/docs" className="transition hover:text-muted-foreground">
             Docs
           </Link>
           <a
             href="https://github.com/pskuntal1248/http-client-intend"
             target="_blank"
             rel="noopener noreferrer"
-            className="transition hover:text-neutral-400"
+            className="transition hover:text-muted-foreground"
           >
             GitHub
           </a>
@@ -169,7 +172,7 @@ function Footer() {
 
 export default function DownloadPage() {
   return (
-    <div className="dark bg-black text-white min-h-[100dvh] w-full selection:bg-neutral-800 selection:text-white">
+    <div className="bg-background text-foreground min-h-[100dvh] w-full selection:bg-secondary selection:text-foreground transition-colors duration-300">
       <Nav />
       <main className="mx-auto max-w-4xl px-6 py-16 sm:py-24">
         {/* Back link */}
@@ -180,7 +183,7 @@ export default function DownloadPage() {
         >
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-neutral-600 transition hover:text-neutral-400"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground/60 transition hover:text-muted-foreground"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Back to home
@@ -195,7 +198,7 @@ export default function DownloadPage() {
           className="mt-8"
         >
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-white sm:text-4xl">
+            <h1 className="text-3xl font-bold text-foreground sm:text-4xl">
               Download Intend
             </h1>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -205,7 +208,7 @@ export default function DownloadPage() {
               className="h-5 mt-1"
             />
           </div>
-          <p className="mt-3 max-w-lg text-base text-neutral-500">
+          <p className="mt-3 max-w-lg text-base text-muted-foreground">
             Native desktop app. No Electron, no account, fully
             offline. Pick your platform below.
           </p>
@@ -219,15 +222,15 @@ export default function DownloadPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: 0.12 + i * 0.08 }}
-              className="rounded-2xl border border-neutral-800 bg-neutral-950 p-6"
+              className="rounded-2xl border border-border bg-card p-6 transition-colors duration-300"
             >
               <div className="flex items-start gap-5">
                 {/* OS icon placeholder */}
                 <OsIcon slot={p.iconSlot} />
 
                 <div className="flex-1">
-                  <h2 className="text-lg font-semibold text-white">{p.os}</h2>
-                  <p className="mt-0.5 text-sm text-neutral-500">
+                  <h2 className="text-lg font-semibold text-foreground">{p.os}</h2>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
                     {p.description}
                   </p>
 
@@ -237,11 +240,11 @@ export default function DownloadPage() {
                       <a
                         key={b.format}
                         href={b.url}
-                        className="group inline-flex items-center gap-2 rounded-lg border border-neutral-700/80 bg-neutral-900/60 px-4 py-2.5 text-sm font-medium text-neutral-300 transition hover:-translate-y-0.5 hover:border-neutral-600 hover:bg-neutral-800/80 hover:text-white"
+                        className="group inline-flex items-center gap-2 rounded-lg border border-border/80 bg-secondary/60 px-4 py-2.5 text-sm font-medium text-foreground/80 transition hover:-translate-y-0.5 hover:border-border hover:bg-secondary hover:text-foreground"
                       >
-                        <Download className="h-4 w-4 text-neutral-500 transition group-hover:text-white" />
+                        <Download className="h-4 w-4 text-muted-foreground transition group-hover:text-foreground" />
                         <span>{b.label}</span>
-                        <span className="ml-1 rounded bg-neutral-800 px-1.5 py-0.5 font-mono text-[11px] text-neutral-500 transition group-hover:bg-neutral-700 group-hover:text-neutral-300">
+                        <span className="ml-1 rounded bg-secondary px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground transition group-hover:bg-muted group-hover:text-foreground/80">
                           {b.format}
                         </span>
                       </a>
@@ -258,10 +261,10 @@ export default function DownloadPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3, delay: 0.5 }}
-          className="mt-10 rounded-xl border border-neutral-800/60 bg-neutral-950/50 px-5 py-4 text-sm text-neutral-500"
+          className="mt-10 rounded-xl border border-border/60 bg-card/50 px-5 py-4 text-sm text-muted-foreground transition-colors duration-300"
         >
           <p>
-            <span className="font-medium text-neutral-400">
+            <span className="font-medium text-foreground/70">
               System requirements:
             </span>{" "}
             JDK 17+ is bundled in native installers. No additional dependencies
@@ -274,13 +277,13 @@ export default function DownloadPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3, delay: 0.6 }}
-          className="mt-6 flex items-center gap-4 text-sm text-neutral-600"
+          className="mt-6 flex items-center gap-4 text-sm text-muted-foreground/60"
         >
           <a
             href="https://github.com/Pskuntal1248/http-client-INTEND/releases/tag/v2.0.0"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 transition hover:text-neutral-400"
+            className="inline-flex items-center gap-1.5 transition hover:text-muted-foreground"
           >
             <Github className="h-4 w-4" />
             View all releases on GitHub
