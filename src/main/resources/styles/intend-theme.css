@@ -1,4 +1,3 @@
-
 .root {
     -fx-base: #121212;
     -fx-background: #121212;
@@ -94,7 +93,8 @@
 }
 
 /* ---- Text fields & password fields ------------------------- */
-.text-field, .password-field {
+.text-field,
+.password-field {
     -fx-background-color: #1E1E1E;
     -fx-text-fill: #E6E6E6;
     -fx-prompt-text-fill: #606060;
@@ -106,7 +106,8 @@
     -fx-font-size: 14px;
 }
 
-.text-field:focused, .password-field:focused {
+.text-field:focused,
+.password-field:focused {
     -fx-border-color: #FF3B3B;
     -fx-effect: dropshadow(gaussian, rgba(255, 59, 59, 0.15), 6, 0, 0, 0);
 }
